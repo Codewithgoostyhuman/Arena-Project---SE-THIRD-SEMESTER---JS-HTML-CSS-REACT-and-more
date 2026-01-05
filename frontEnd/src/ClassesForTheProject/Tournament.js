@@ -12,6 +12,7 @@ export default class Tournament {
     this.players = [];
     this.matches = [];
     this.GameClass = GameClass;
+    winners = [];
   }
 
   addPlayer(player) {
@@ -27,4 +28,12 @@ export default class Tournament {
     this.matches = this.style.generateMatches(this.players, this.GameClass);
     this.status = "ongoing";
   }
+  getWinners() {
+    if (!this.matches || this.matches.length === 0) return [];
+    winners = this.style.getWinners(this.matches);
+    return winners;
+  }
+
+  
+
 }

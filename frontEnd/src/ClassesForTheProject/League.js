@@ -32,7 +32,17 @@ export default class League {
     this.tournaments.push(tournament);
     return tournament;
   }
-
+  announceTournament(tournamentName){
+    let name = "";
+    let i = 0;
+    while(name != tournamentName){
+      name = this.tournaments[i];
+      i++;
+    }
+    if(name === tournamentName){
+      return `A new tournament ${tournamentName} has been created under the League: ${this.name}!`;
+    }
+  }
   addPlayer(player) {
     this.players.push(player);
   }
