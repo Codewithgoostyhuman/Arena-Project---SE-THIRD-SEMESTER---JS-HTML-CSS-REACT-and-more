@@ -1,24 +1,63 @@
 import Tournament from "./Tournament.js";
-import RoundRobin from "./TournamentStyles/RoundRobinTournamentStyles.js";
+import RoundRobin from "./TournamentStyles/RoundRobinTournamentStyle.js";
 import DoubleRoundRobin from "./TournamentStyles/DoubleRoundRobinTournamentStyle.js";
 import SingleElimination from "./TournamentStyles/SingleEliminationTournamentStyle.js";
+import { assertValidRating } from "./helpers/assertValidRating.js";
 
 export default class League {
-  constructor(name, owner, GameClass, ratingFunction) {
+  constructor(name, owner, GameClass, rating) {
     this.name = name;
     this.owner = owner;
     this.GameClass = GameClass;
+    this.rating = rating;
+
     this.players = [];
+    this.applications = [];
     this.tournaments = [];
-    this.ratingFunction = ratingFunction;
+  }
+  receiveApplication(application) {
+    if (application.target !== this) {
+      throw new Error("Invalid application target");
+    }
+
+    this.applications.push(application);
+  }
+
+  approveApplication(application) {
+    if (!this.applications.includes(application)) {
+      throw new Error("Application not found in this league");
+    }
+
+    application.approve();
+
+    this.players.push(application.player);
+    application.player.leagues.push(this);
+  }
+
+  rejectApplication(application) {
+    if (!this.applications.includes(application)) {
+      throw new Error("Application not found in this league");
+    }
+
+    application.reject();
   }
 
   createTournament(name, styleType, startDate, endDate, maxPlayers = 64) {
     let style;
 
-    if (styleType === "RoundRobin") style = new RoundRobin();
-    if (styleType === "DoubleRoundRobin") style = new DoubleRoundRobin();
-    if (styleType === "SingleElimination") style = new SingleElimination();
+    switch (styleType) {
+      case "RoundRobin":
+        style = new RoundRobin();
+        break;
+      case "DoubleRoundRobin":
+        style = new DoubleRoundRobin();
+        break;
+      case "SingleElimination":
+        style = new SingleElimination();
+        break;
+      default:
+        throw new Error(`Unknown tournament style: ${styleType}`);
+    }
 
     const tournament = new Tournament(
       name,
@@ -26,20 +65,21 @@ export default class League {
       endDate,
       maxPlayers,
       style,
-      this.GameClass
+      this.GameClass,
+      this // pass league reference
     );
 
     this.tournaments.push(tournament);
     return tournament;
   }
-  announceTournament(tournamentName){
+  announceTournament(tournamentName) {
     let name = "";
     let i = 0;
-    while(name != tournamentName){
+    while (name != tournamentName) {
       name = this.tournaments[i];
       i++;
     }
-    if(name === tournamentName){
+    if (name === tournamentName) {
       return `A new tournament ${tournamentName} has been created under the League: ${this.name}!`;
     }
   }
@@ -47,11 +87,8 @@ export default class League {
     this.players.push(player);
   }
 
-  recordMatch(playerId, result) {
-    const player = this.players.find(p => p.Id === playerId);
-    if (!player) return;
-
-    const points = this.ratingFunction(result);
+  awardPoints(player, matchResult) {
+    const points = this.rating.calculate(matchResult);
     player.addPoints(points);
   }
 }

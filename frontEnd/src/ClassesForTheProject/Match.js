@@ -20,11 +20,19 @@ export default class Match {
       this.status = "finished";
     }
   }
+ getResultFor(player) {
+    if (this.status !== "finished") {
+      throw new Error("Match not finished yet");
+    }
 
-  result() {
-    return {
-      players: this.players,
-      ...this.game.result(),
-    };
+    const { winner, isDraw } = this.game.result();
+
+    if (isDraw) return MatchResult.DRAW;
+    if (winner === player) return MatchResult.WIN;
+    return MatchResult.LOSE;
+  }
+
+ result() {
+    return this.game.result();
   }
 }

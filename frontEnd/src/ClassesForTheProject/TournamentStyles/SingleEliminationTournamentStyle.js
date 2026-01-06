@@ -1,48 +1,27 @@
-import TournamentStyle from "../TournamentStyles/TournamentStyle.js";
+import TournamentStyle from "./TournamentStyle.js";
+import Match from "../Match.js";
 
-class SingleEliminationTournamentStyle extends TournamentStyle {
-
-  getMatchCount() {
-    return this.players.length - 1;
+export default class SingleEliminationTournamentStyle extends TournamentStyle {
+  getMatchCount(players) {
+    return players.length - 1;
   }
 
-  generateMatches() {
+  generateMatches(players, GameClass) {
     const matches = [];
-    const queue = [...this.players];
-
-
-    for (let i = queue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue[i], queue[j]] = [queue[j], queue[i]];
-    }
+    const queue = [...players];
 
     while (queue.length > 1) {
-      const player1 = queue.shift();
-      const player2 = queue.shift();
-
-      matches.push({
-        players: [player1, player2],
-        round: "Elimination",
-      });
+      const p1 = queue.shift();
+      const p2 = queue.shift();
+      matches.push(new Match(GameClass, [p1, p2]));
     }
 
     return matches;
   }
 
   getWinners(matches) {
-    if (!matches || matches.length === 0) return [];
-
-    const finishedMatches = matches.filter(m => m.status === "finished");
-    if (finishedMatches.length === 0) return [];
-
-    const finalMatch = finishedMatches[finishedMatches.length - 1];
-    if (!finalMatch.result) return [];
-
-    const { winner, draw } = finalMatch.result();
-    if (draw || !winner) return [];
-
+    const finalMatch = matches[matches.length - 1];
+    const { winner } = finalMatch.result();
     return [winner];
   }
 }
-
-export default SingleEliminationTournamentStyle;

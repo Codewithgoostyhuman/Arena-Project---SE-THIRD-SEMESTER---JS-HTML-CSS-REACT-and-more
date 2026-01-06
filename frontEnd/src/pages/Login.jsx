@@ -1,0 +1,140 @@
+import { useState } from "react";
+import { useAuth } from "../Auth/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSubmit(e) {
+  e.preventDefault();
+  setError("");
+
+  console.log("=== FRONTEND LOGIN ===");
+  console.log("Sending:", { name, password });
+
+  if (!name || !password) {
+    setError("Username and password are required");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const result = await login(name, password);
+    console.log("Login result:", result);
+
+    if (result.success && result.user) {
+      console.log("User role:", result.user.role);
+      // Redirect based on role
+      switch (result.user.role) {
+        case 'operator':
+          navigate('/operator');
+          break;
+        case 'leagueOwner':
+          navigate('/league-owner');
+          break;
+        case 'player':
+          navigate('/player');
+          break;
+        default:
+          navigate('/');
+      }
+    } else {
+      setError(result.message || 'Login failed');
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    setError('Network error. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+  return (
+    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
+      <form onSubmit={handleSubmit}>
+        <h2>Login</h2>
+        
+        {error && (
+          <div style={{ 
+            color: 'red', 
+            marginBottom: '15px', 
+            padding: '10px', 
+            backgroundColor: '#ffebee',
+            borderRadius: '4px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ marginBottom: '15px' }}>
+          <input
+            type="text"
+            name="name"
+            placeholder="Username"
+            autoComplete="username"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{ 
+              width: '100%', 
+              padding: '10px', 
+              fontSize: '1rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '15px' }}>
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            autoComplete="current-password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{ 
+              width: '100%', 
+              padding: '10px', 
+              fontSize: '1rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+
+        <button 
+          type="submit"
+          disabled={loading}
+          style={{ 
+            width: '100%', 
+            padding: '10px', 
+            fontSize: '1rem',
+            backgroundColor: loading ? '#ccc' : '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
+
+      <p style={{ marginTop: '15px', textAlign: 'center' }}>
+        Don't have an account?{' '}
+        <span 
+          onClick={() => navigate('/register')}
+          style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Register here
+        </span>
+      </p>
+    </div>
+  );
+}

@@ -1,21 +1,23 @@
-export default class rating{
-    constructor(name,winnerScore,loserScore,drawScore){
-        this.name = name;
-        this.winnerScore = winnerScore;
-        this.loserScore = loserScore;
-        this.drawScore = drawScore;
-    }
-      calculate(matchResult) {
+import { MatchResult } from "./helpers/matchResult.js";
+
+export default class Rating {
+  constructor(name, winnerScore, loserScore, drawScore) {
+    this.name = name;
+    this.winnerScore = winnerScore;
+    this.loserScore = loserScore;
+    this.drawScore = drawScore;
+  }
+
+  calculate(matchResult) {
     switch (matchResult) {
-      case "win":
+      case MatchResult.WIN:
         return this.winnerScore;
-      case "draw":
+      case MatchResult.DRAW:
         return this.drawScore;
-      case "lose":
+      case MatchResult.LOSE:
         return this.loserScore;
       default:
         throw new Error(`Invalid match result: ${matchResult}`);
     }
   }
 }
-

@@ -1,28 +1,107 @@
-import React from 'react'
-import Register from './UI-Components/Register.jsx';
-import Login from './UI-Components/Login.jsx';
-import ActivateUsers from './UI-Components/ActivateUsers.jsx';
-import NumberGuessDuelUI from './GameComponents/NumberGuessDuelUI.jsx';
-import Player from './ClassesForTheProject/Player.js'
-import Match from "./ClassesForTheProject/Match.js"
-import NumberGuessDuel from './ClassesForTheProject/GameLogics/numberguessduellogic.js';
-import SingleEliminationTournamentStyle from "./ClassesForTheProject/TournamentStyles/SingleEliminationTournamentStyle.js"
-import AdvertiserDashboard from './UI-Components/AdvertiserDashboard.jsx';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./Auth/AuthContext";
+import RequireAuth from "./Auth/RequireAuth";
+import RequireRole from "./Auth/RequireRole";
 
-const App = () => {
-  let player1 = new Player(123,"Zeeshan1","zeeshan@gmail.com","123","player","active");
-  let player2 = new Player(123,"Zeeshan2","zeeshan@gmail.com","123","player","active");
-  let singleElimination = new SingleEliminationTournamentStyle([player1,player2])
-  let match = new Match(NumberGuessDuel,[player1,player2]);
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Unauthorized from "./pages/Unauthorized";
+
+import OperatorHome from "./pages/Operator/OperatorHome";
+import LeagueOwnerHome from "./pages/LeagueOwner/LeagueOwnerHome";
+import PlayerHome from "./pages/Player/PlayerHome";
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.5rem'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* <Register /> */}
-      {/* <Login /> */}
-      {/* <ActivateUsers /> */}
-      {/* <NumberGuessDuelUI /> */}
-      <AdvertiserDashboard></AdvertiserDashboard>
-    </div>
-  )
+    <Routes>
+      {/* Root route - redirect based on auth status and role */}
+      <Route 
+        path="/" 
+        element={
+          user ? (
+            // User is logged in - redirect to their role page
+            user.role === 'operator' ? <Navigate to="/operator" replace /> :
+            user.role === 'leagueOwner' ? <Navigate to="/league-owner" replace /> :
+            user.role === 'player' ? <Navigate to="/player" replace /> :
+            <Navigate to="/login" replace />
+          ) : (
+            // User not logged in - redirect to login
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+      
+      {/* Public routes - redirect to role page if already logged in */}
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/" replace /> : <Login />} 
+      />
+      <Route 
+        path="/register" 
+        element={user ? <Navigate to="/" replace /> : <Register />} 
+      />
+      
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route
+        path="/operator"
+        element={
+          <RequireAuth>
+            <RequireRole allowedRoles={["operator"]}>
+              <OperatorHome />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/league-owner"
+        element={
+          <RequireAuth>
+            <RequireRole allowedRoles={["leagueOwner"]}>
+              <LeagueOwnerHome />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/player"
+        element={
+          <RequireAuth>
+            <RequireRole allowedRoles={["player"]}>
+              <PlayerHome />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}

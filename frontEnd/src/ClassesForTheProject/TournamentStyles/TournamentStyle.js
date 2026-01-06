@@ -1,17 +1,13 @@
-export default class TournamentStyle{
-    constructor(players = []){
-        if(new.target === TournamentStyle){
-            throw new TypeError("Cannot construct TournamentStyle instances directly");
-        }
-        this.players = players;
-    }
-    getPlayers(){
-        return this.players;
-    }
-    getMatchCount(){
-        throw new Error("Method 'getMatchCount()' must be implemented.");
-    }
-    generateMatches(){
-        throw new Error("Method 'generateMatches()' must be implemented.");
-    }
+export default class TournamentStyle {
+  getMatchCount(players) {
+    throw new Error("getMatchCount() not implemented");
+  }
+
+  generateMatches(players, GameClass) {
+    throw new Error("generateMatches() not implemented");
+  }
+
+  getWinners(matches) {
+    throw new Error("getWinners() not implemented");
+  }
 }

@@ -46,10 +46,10 @@ async deleteUser(userId){
     return deleteUser(userId);
 }
 addNewGame(GameName){
-    games.push(GameName);
+    this.games.push(GameName);
 }
 addNewTournamentStyle(tournamentStyleName){
-    tournamentStyles.push(tournamentStyleName);
+    this.tournamentStyles.push(tournamentStyleName);
 }
 
 }

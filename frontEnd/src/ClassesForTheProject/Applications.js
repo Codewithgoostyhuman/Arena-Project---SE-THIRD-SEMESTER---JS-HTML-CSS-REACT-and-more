@@ -1,10 +1,22 @@
 export default class Application {
-  constructor(playerId, playerName, leagueName, status = "Pending") {
-    this.applicationId = Math.floor(Math.random() * 1000000);
-    this.playerId = playerId;
-    this.playerName = playerName;
-    this.leagueName = leagueName;
-    this.status = status;
-    this.submissionDate = new Date(); 
+  constructor(player, target) {
+    this.player = player;     // Player
+    this.target = target;     // League or Tournament
+    this.status = "pending";  // pending | approved | rejected
+    this.createdAt = new Date();
+  }
+
+  approve() {
+    if (this.status !== "pending") {
+      throw new Error("Application already processed");
+    }
+    this.status = "approved";
+  }
+
+  reject() {
+    if (this.status !== "pending") {
+      throw new Error("Application already processed");
+    }
+    this.status = "rejected";
   }
 }

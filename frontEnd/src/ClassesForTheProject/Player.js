@@ -1,58 +1,60 @@
-// Player.js
-import User from "./User.js";
-import Application from "./Applications.js";
+import Application from "./Application.js";
+import { MatchResult } from "./helpers/matchResult.js";
 
-export default class Player extends User {
-  constructor(Id, name, email, password, role = "Player", status = "Pending") {
-    super(Id, name, email, password, role, status);
+export default class Player {
+  constructor(id, name) {
+    this.id = id;
+    this.name = name;
 
-    this.totalMatches = 0;
+    // statistics
     this.wins = 0;
     this.losses = 0;
+    this.draws = 0;
     this.points = 0;
+
+    // participation
     this.applications = [];
-    this.assignedMatches = []; 
-    this.currentArena = null;
-    this.isDroppedOut = false;
+    this.leagues = [];
+    this.tournaments = [];
   }
 
- 
-  registerInArena(arenaName) {
-    if (this.isDroppedOut) return console.error("Cannot register: Player has dropped out.");
-    this.currentArena = arenaName;
-    console.log(`${this.name} registered in arena: ${arenaName}`);
-  }
-
-
-  submitApplication(leagueName) {
-    if (this.isDroppedOut) return console.error("Cannot apply: Player has dropped out.");
-    
-
-    const application = new Application(this.Id, this.name, leagueName);
+  applyToLeague(league) {
+    const application = new Application(this, league);
     this.applications.push(application);
-    
-    console.log(`Application for ${leagueName} submitted. ID: ${application.applicationId}`);
+    league.receiveApplication(application);
     return application;
   }
 
+  applyToTournament(tournament) {
+    // CASE STUDY RULE:
+    // Player must belong to the league first
+    if (!this.leagues.includes(tournament.league)) {
+      throw new Error("Player must join league before applying to tournament");
+    }
 
-  playMatch(matchId, result, ratingSystem) {
-    if (this.isDroppedOut) return console.error("Player has dropped out.");
-    const pointsAwarded = ratingSystem.calculate(result);
-    this.points += pointsAwarded;
-    this.totalMatches++;
-    if (result === "win") this.wins++;
-    else if (result === "lose") this.losses++;
-    else if (result === "draw") this.draws++;
-
-    console.log(`Match ${matchId} updated: ${result}. Points earned: ${pointsAwarded}`);
+    const application = new Application(this, tournament);
+    this.applications.push(application);
+    tournament.receiveApplication(application);
+    return application;
   }
 
+  recordMatchResult(matchResult) {
+    switch (matchResult) {
+      case MatchResult.WIN:
+        this.wins++;
+        break;
+      case MatchResult.DRAW:
+        this.draws++;
+        break;
+      case MatchResult.LOSE:
+        this.losses++;
+        break;
+      default:
+        throw new Error(`Invalid match result: ${matchResult}`);
+    }
+  }
 
-  dropOut() {
-    this.isDroppedOut = true;
-    this.status = "Inactive";
-    this.assignedMatches = []; 
-    console.log(`${this.name} has dropped out of the tournament.`);
+  addPoints(points) {
+    this.points += points;
   }
 }
