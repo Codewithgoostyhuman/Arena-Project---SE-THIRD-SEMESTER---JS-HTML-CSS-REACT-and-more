@@ -88,7 +88,7 @@ app.patch("/user/activate/:id", async (req, res) => {
   }
 });
 
-// Deactivate user by ID (bonus - for later use)
+// Deactivate user by ID 
 app.patch("/user/deactivate/:id", async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(

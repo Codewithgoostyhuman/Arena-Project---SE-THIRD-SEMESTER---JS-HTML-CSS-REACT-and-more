@@ -129,7 +129,7 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-6 bg-black text-white overflow-hidden">
       {/* Animated Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,0,0,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,0,0,0.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
       
       {/* Dynamic Red Glows */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-red-600/20 rounded-full blur-[140px] animate-pulse" />
@@ -137,7 +137,7 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
 
       <div className="relative w-full max-w-2xl bg-zinc-950/80 backdrop-blur-2xl border border-red-900/30 p-10 rounded-3xl shadow-[0_0_100px_rgba(220,38,38,0.15)] overflow-hidden group">
         {/* Top Accent Glow */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-red-500 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
         
         {/* Corner Accents */}
         <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-red-500/40 rounded-tl-3xl" />
@@ -154,7 +154,7 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
           <p className="text-zinc-500 text-xs mt-3 font-semibold tracking-[0.25em] uppercase">
             {header.subtitle}
           </p>
-          <div className="mt-4 h-px w-40 mx-auto bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+          <div className="mt-4 h-px w-40 mx-auto bg-linear-to-r from-transparent via-red-500/50 to-transparent" />
         </div>
 
         {!isFinished ? (
@@ -230,7 +230,7 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
                 <button
                   onClick={submitSecret}
                   disabled={!secretNumber}
-                  className="relative w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
+                  className="relative w-full bg-linear-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
                 >
                   <span className="relative z-10">Lock Secret</span>
                 </button>
@@ -241,7 +241,7 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
             {hasSetSecret && (
               <>
                 <div className="relative group/input">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-600/0 via-red-600/5 to-red-600/0 rounded-xl opacity-0 group-hover/input:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-linear-to-r from-red-600/0 via-red-600/5 to-red-600/0 rounded-xl opacity-0 group-hover/input:opacity-100 transition-opacity duration-300" />
                   <input
                     type="number"
                     min="1"
@@ -264,13 +264,13 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
                 <button
                   onClick={submitGuess}
                   disabled={!guess || !isMyTurn}
-                  className="relative w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-5 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
+                  className="relative w-full bg-linear-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-5 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
                 >
                   <span className="relative z-10">
                     {!guess ? 'Awaiting Input' : !isMyTurn ? 'Opponent\'s Turn' : 'Fire Guess'}
                   </span>
                   {guess && isMyTurn && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
                   )}
                 </button>
               </>
@@ -288,14 +288,14 @@ export default function NumberGuessDuelUI({ competition, currentPlayer }) {
           <div className="relative w-full text-center space-y-6">
             {/* Result Display */}
             <div className="relative p-8 bg-black/60 border-2 border-red-500/40 rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-950/30 via-transparent to-orange-950/30" />
+              <div className="absolute inset-0 bg-linear-to-br from-red-950/30 via-transparent to-orange-950/30" />
               
               <div className="relative space-y-4">
                 <div className="text-xs text-zinc-500 uppercase tracking-[0.3em] font-bold">
                   Battle Complete
                 </div>
                 
-                <div className="h-px w-24 mx-auto bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+                <div className="h-px w-24 mx-auto bg-linear-to-r from-transparent via-red-500/50 to-transparent" />
                 
                 <div className="text-4xl font-black uppercase italic">
                   {game?.draw ? (
