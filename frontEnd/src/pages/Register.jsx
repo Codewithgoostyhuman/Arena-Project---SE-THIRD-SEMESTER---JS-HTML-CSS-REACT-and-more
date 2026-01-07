@@ -168,7 +168,7 @@ export default function Register() {
             >
               <option value="player">Player</option>
               <option value="leagueOwner">League Owner</option>
-              {/* <option value="operator">Operator</option> */}
+              <option value="advertiser">Advertiser</option> 
             </select>
           </div>
 

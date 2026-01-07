@@ -7,15 +7,20 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginAs, setLoginAs] = useState();
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  //Handle Login Form Submission
   async function handleSubmit(e) {
   e.preventDefault();
   setError("");
 
-  console.log("=== FRONTEND LOGIN ===");
-  console.log("Sending:", { name, password });
+  // Spectator bypass
+  if (loginAs === "spectator") {
+    navigate("/spectator");
+    return;
+  }
 
   if (!name || !password) {
     setError("Username and password are required");
@@ -26,34 +31,31 @@ export default function Login() {
 
   try {
     const result = await login(name, password);
-    console.log("Login result:", result);
 
     if (result.success && result.user) {
-      console.log("User role:", result.user.role);
-      // Redirect based on role
-      switch (result.user.role) {
-        case 'operator':
-          navigate('/operator');
+      switch (result.user.role.ToLowerCase()) {
+        case "operator":
+          navigate("/operator");
           break;
-        case 'leagueOwner':
-          navigate('/league-owner');
+        case "leagueOwner":
+          navigate("/league-owner");
           break;
-        case 'player':
-          navigate('/player');
+        case "player":
+          navigate("/player");
           break;
         default:
-          navigate('/');
+          navigate("/");
       }
     } else {
-      setError(result.message || 'Login failed');
+      setError(result.message || "Login failed");
     }
   } catch (err) {
-    console.error('Login error:', err);
-    setError('Network error. Please try again.');
+    setError("Network error. Please try again.");
   } finally {
     setLoading(false);
   }
 }
+
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
@@ -71,6 +73,26 @@ export default function Login() {
             {error}
           </div>
         )}
+        <div style={{ marginBottom: "15px" }}>
+  <select
+    value={loginAs}
+    onChange={(e) => setLoginAs(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "10px",
+      fontSize: "1rem",
+      border: "1px solid #ddd",
+      borderRadius: "4px",
+    }}
+  >
+    <option value="player">Login as Player</option>
+    <option value="operator">Login as Operator</option>
+    <option value="leagueOwner">Login as League Owner</option>
+    <option value="advertiser">Login as Advertiser</option>
+    <option value="spectator">Login as Spectator</option>
+  </select>
+</div>
+
 
         <div style={{ marginBottom: '15px' }}>
           <input
@@ -78,6 +100,7 @@ export default function Login() {
             name="name"
             placeholder="Username"
             autoComplete="username"
+            disabled={loginAs === "spectator"}
             value={name}
             onChange={e => setName(e.target.value)}
             style={{ 
@@ -96,6 +119,7 @@ export default function Login() {
             name="password"
             placeholder="Password"
             autoComplete="current-password"
+            disabled={loginAs === "spectator"}
             value={password}
             onChange={e => setPassword(e.target.value)}
             style={{ 

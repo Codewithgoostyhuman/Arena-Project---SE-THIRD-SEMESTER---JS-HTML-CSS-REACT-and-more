@@ -32,7 +32,7 @@ export const authenticate = async (req, res, next) => {
 
 export const Roles = {
   OPERATOR: 'operator',
-  LEAGUE_OWNER: 'league_owner',
+  LEAGUE_OWNER: 'leagueOwner',
   PLAYER: 'player',
 };
 

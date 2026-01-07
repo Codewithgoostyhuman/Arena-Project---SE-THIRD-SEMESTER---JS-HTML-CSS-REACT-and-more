@@ -1,6 +1,6 @@
-// helpers/roles.js
-export const Roles = Object.freeze({
-  OPERATOR: "operator",
-  LEAGUE_OWNER: "leagueOwner",
-  PLAYER: "player",
-});
+export const Roles = {
+  OPERATOR: 'operator',
+  LEAGUE_OWNER: 'leagueOwner',
+  PLAYER: 'player',
+  ADVERTISER: 'advertiser', 
+};

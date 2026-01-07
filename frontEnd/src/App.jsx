@@ -7,9 +7,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Unauthorized from "./pages/Unauthorized";
 
-import OperatorHome from "./pages/Operator/OperatorHome";
-import LeagueOwnerHome from "./pages/LeagueOwner/LeagueOwnerHome";
-import PlayerHome from "./pages/Player/PlayerHome";
+import OperatorDashboard from "./pages/Operator/OperatorHome";
+import LeagueOwnerDashboard from "./pages/LeagueOwner/LeagueOwnerHome";
+import PlayerDashboard from "./pages/Player/PlayerHome";
+import AdvertiserDashboard from "./pages/Advertiser/AdvertiserHome";
+import SpectatorDashboard from "./pages/Spectator/SpectatorHome";
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -65,7 +67,7 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireRole allowedRoles={["operator"]}>
-              <OperatorHome />
+              <OperatorDashboard />
             </RequireRole>
           </RequireAuth>
         }
@@ -76,7 +78,7 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireRole allowedRoles={["leagueOwner"]}>
-              <LeagueOwnerHome />
+              <LeagueOwnerDashboard />
             </RequireRole>
           </RequireAuth>
         }
@@ -87,12 +89,29 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireRole allowedRoles={["player"]}>
-              <PlayerHome />
+              <PlayerDashboard />
             </RequireRole>
           </RequireAuth>
         }
       />
+      <Route
+        path="/advertiser"
+        element={
+          <RequireAuth>
+            <RequireRole allowedRoles={["advertiser"]}>
+              <PlayerDashboard />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/spectator"
+        element={
+              <SpectatorDashboard />
+        }
+      />
     </Routes>
+    
   );
 }
 

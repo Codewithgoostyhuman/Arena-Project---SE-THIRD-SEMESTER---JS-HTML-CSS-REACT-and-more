@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ["operator", "leagueOwner", "player"],
+    enum: ["operator", "leagueOwner", "player","advertiser"],
     default: "player", // Add default
     required: true,
   },
