@@ -16,7 +16,6 @@ import SpectatorDashboard from "./pages/Spectator/SpectatorHome";
 function AppRoutes() {
   const { user, loading } = useAuth();
 
-  // Show loading spinner while checking authentication
   if (loading) {
     return (
       <div style={{ 
@@ -30,36 +29,26 @@ function AppRoutes() {
       </div>
     );
   }
-
+console.log("Past loading check, rendering routes"); // Add this line
   return (
     <Routes>
-      {/* Root route - redirect based on auth status and role */}
       <Route 
         path="/" 
         element={
           user ? (
-            // User is logged in - redirect to their role page
             user.role === 'operator' ? <Navigate to="/operator" replace /> :
             user.role === 'leagueOwner' ? <Navigate to="/league-owner" replace /> :
             user.role === 'player' ? <Navigate to="/player" replace /> :
+            user.role === 'advertiser' ? <Navigate to="/advertiser" replace /> :
             <Navigate to="/login" replace />
           ) : (
-            // User not logged in - redirect to login
             <Navigate to="/login" replace />
           )
         } 
       />
       
-      {/* Public routes - redirect to role page if already logged in */}
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to="/" replace /> : <Login />} 
-      />
-      <Route 
-        path="/register" 
-        element={user ? <Navigate to="/" replace /> : <Register />} 
-      />
-      
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route
@@ -94,24 +83,20 @@ function AppRoutes() {
           </RequireAuth>
         }
       />
+
       <Route
         path="/advertiser"
         element={
           <RequireAuth>
             <RequireRole allowedRoles={["advertiser"]}>
-              <PlayerDashboard />
+              <AdvertiserDashboard />
             </RequireRole>
           </RequireAuth>
         }
       />
-      <Route
-        path="/spectator"
-        element={
-              <SpectatorDashboard />
-        }
-      />
+
+      <Route path="/spectator" element={<SpectatorDashboard />} />
     </Routes>
-    
   );
 }
 

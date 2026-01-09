@@ -40,6 +40,11 @@ export default function Unauthorized() {
                 <Link to="/player">Player Dashboard</Link>
               </li>
             )}
+            {user.role === "advertiser" && (
+              <li>
+                <Link to="/advertiser">Advertiser Dashboard</Link>
+              </li>
+            )}
           </ul>
         </>
       ) : (

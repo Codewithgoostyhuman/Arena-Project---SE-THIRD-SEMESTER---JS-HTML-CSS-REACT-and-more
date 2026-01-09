@@ -11,6 +11,9 @@ import Tournament from './schemas/TournamentSchema.js';
 import Game from './schemas/GameSchema.js';
 import RatingFormula from './schemas/RatingFormulaSchema.js';
 import Match from "./schemas/MatchSchema.js"
+import Advertiser from './schemas/AdvertiserSchema.js'
+import Account from "./schemas/AccountSchema.js";
+import Advertisement from './schemas/AdvertisementSchema.js '
 dotenv.config();
 console.log("server.js file loaded");
 
@@ -64,6 +67,7 @@ app.post("/login", async (req, res) => {
     
     console.log("=== LOGIN ATTEMPT ===");
     console.log("Request body:", req.body);
+    console.log("Request origin:", req.headers.origin);
     console.log("Looking for user:", name);
     
     const user = await User.findOne({ name });
@@ -87,12 +91,19 @@ app.post("/login", async (req, res) => {
 
     console.log("✅ LOGIN SUCCESS");
     const token = generateToken(user);
+    
+    console.log("Generated token:", token); // Debug
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
-      sameSite: "strict",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/'
     });
+
+    console.log("Cookie should be set with token");
+    console.log("Response headers will include Set-Cookie");
 
     res.json({ message: "Login successful" });
   } catch (err) {
@@ -1108,23 +1119,25 @@ app.post("/register-advertiser", async (req, res) => {
       status: 'inactive' // Requires operator approval
     });
     await user.save();
+ // Create Advertiser profile first
+const advertiser = new Advertiser({
+  user: user._id,
+  companyName,
+  leaguesOfInterest: [],
+  sponsoredTournaments: []
+});
+await advertiser.save();
 
-    // Create account
-    const account = new Account({
-      advertiser: null, // Will be set after advertiser creation
-      balance: 0
-    });
-    await account.save();
+// Create Account with advertiser
+const account = new Account({
+  advertiser: advertiser._id,
+  balance: 0
+});
+await account.save();
 
-    // Create advertiser profile
-    const advertiser = new Advertiser({
-      user: user._id,
-      companyName,
-      account: account._id,
-      leaguesOfInterest: [],
-      sponsoredTournaments: []
-    });
-    await advertiser.save();
+// Update advertiser with account reference
+advertiser.account = account._id;
+await advertiser.save();
 
     // Update account with advertiser reference
     account.advertiser = advertiser._id;
@@ -1171,6 +1184,11 @@ app.put("/advertiser/profile", authenticate, authorizeRoles(Roles.ADVERTISER), a
       { companyName, leaguesOfInterest },
       { new: true }
     );
+    if (advertiser.status !== 'active') {
+  return res.status(403).json({
+    message: 'Advertiser account pending operator approval'
+  });
+}
 
     res.json(advertiser);
   } catch (err) {

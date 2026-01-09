@@ -9,6 +9,7 @@ export default function Register() {
     password: "",
     confirmPassword: "",
     role: "player",
+    companyName: "", // NEW: for advertisers
     status: "inactive"
   });
   const [error, setError] = useState("");
@@ -32,6 +33,12 @@ export default function Register() {
       return;
     }
 
+    // Advertiser-specific validation
+    if (formData.role === "advertiser" && !formData.companyName) {
+      setError("Company name is required for advertisers");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -52,27 +59,48 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/register', {
+      // Choose endpoint based on role
+      const endpoint = formData.role === "advertiser" 
+        ? '/register-advertiser' 
+        : '/register';
+
+      // Prepare request body based on role
+      const requestBody = formData.role === "advertiser"
+        ? {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            companyName: formData.companyName
+          }
+        : {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+            status: formData.status
+          };
+
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-          status: formData.status
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         console.log('Registration successful:', data);
-        // Show success message and redirect to login
-        alert('Registration successful! Please login with your credentials.');
+        
+        // Different messages for advertiser vs other roles
+        if (formData.role === "advertiser") {
+          alert('Advertiser registration successful! Your account is pending operator approval. Please login after approval.');
+        } else {
+          alert('Registration successful! Please login with your credentials.');
+        }
+        
         navigate('/login');
       } else {
         setError(data.message || 'Registration failed');
@@ -128,6 +156,38 @@ export default function Register() {
           </div>
 
           <div style={styles.formGroup}>
+            <label style={styles.label}>Role *</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              style={styles.select}
+              disabled={loading}
+            >
+              <option value="player">Player</option>
+              <option value="leagueOwner">League Owner</option>
+              <option value="advertiser">Advertiser</option> 
+            </select>
+          </div>
+
+          {/* Show company name field only for advertisers */}
+          {formData.role === "advertiser" && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Company Name *</label>
+              <input
+                type="text"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleChange}
+                style={styles.input}
+                placeholder="Enter your company name"
+                disabled={loading}
+                required
+              />
+            </div>
+          )}
+
+          <div style={styles.formGroup}>
             <label style={styles.label}>Password *</label>
             <input
               type="password"
@@ -157,37 +217,11 @@ export default function Register() {
             />
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Role *</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              style={styles.select}
-              disabled={loading}
-            >
-              <option value="player">Player</option>
-              <option value="leagueOwner">League Owner</option>
-              <option value="advertiser">Advertiser</option> 
-            </select>
-          </div>
-
-          {/* <div style={styles.formGroup}>
-            <label style={styles.label}>Account Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              style={styles.select}
-              disabled={loading}
-            >
-              <option value="inactive">Inactive (Requires Approval)</option>
-              <option value="active">Active</option>
-            </select>
-            <small style={styles.hint}>
-              New accounts are typically set to inactive and require operator approval.
-            </small>
-          </div> */}
+          {formData.role === "advertiser" && (
+            <div style={styles.infoBox}>
+              ℹ️ Advertiser accounts require operator approval before you can login.
+            </div>
+          )}
 
           <button 
             type="submit" 
@@ -243,6 +277,15 @@ const styles = {
     borderRadius: "4px",
     marginBottom: "1rem",
     border: "1px solid #fcc"
+  },
+  infoBox: {
+    backgroundColor: "#e7f3ff",
+    color: "#0066cc",
+    padding: "0.75rem",
+    borderRadius: "4px",
+    marginBottom: "1rem",
+    border: "1px solid #b3d9ff",
+    fontSize: "0.9rem"
   },
   form: {
     display: "flex",

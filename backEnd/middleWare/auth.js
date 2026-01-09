@@ -34,6 +34,7 @@ export const Roles = {
   OPERATOR: 'operator',
   LEAGUE_OWNER: 'leagueOwner',
   PLAYER: 'player',
+  ADVERTISER: 'advertiser', // ADD THIS LINE!
 };
 
 export const authorizeRoles = (...allowedRoles) => {
@@ -44,7 +45,9 @@ export const authorizeRoles = (...allowedRoles) => {
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
-        message: 'Access denied. Insufficient permissions.' 
+        message: 'Access denied. Insufficient permissions.',
+        userRole: req.user.role, // Add this for debugging
+        allowedRoles: allowedRoles // Add this for debugging
       });
     }
 

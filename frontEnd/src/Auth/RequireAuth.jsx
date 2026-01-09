@@ -2,9 +2,8 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 export default function RequireAuth({ children }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth(); // Removed loading
 
-  if (loading) return <p>Loading...</p>;
   if (!user) return <Navigate to="/login" replace />;
 
   return children;
