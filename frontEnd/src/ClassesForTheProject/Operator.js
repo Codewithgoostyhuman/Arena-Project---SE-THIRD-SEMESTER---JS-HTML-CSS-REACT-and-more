@@ -1,8 +1,9 @@
 import { activateUser, activateUserByName, deactivateUser,deleteUser } from "../APIs/UserAPI";
 import rating from "./Rating";
+import { Roles } from "./helpers/roles";
 
 export default class Operator extends User{
-    constructor(id,name,email,password,role="Operator",status="Active"){
+    constructor(id,name,email,password,role=Roles.OPERATOR,status="active"){
         super(id,name,email,password,role,status);
         this.games = ["Number Guess Duel","Tic Tac Toe","Rock Paper Scissors"];
         this.tournamentStyles = ["Round Robin","Double Round Robin","Single Elimination"];

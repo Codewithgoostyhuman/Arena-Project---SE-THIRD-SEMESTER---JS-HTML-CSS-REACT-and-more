@@ -1,10 +1,10 @@
 import Application from "./Application.js";
 import { MatchResult } from "./helpers/matchResult.js";
-
-export default class Player {
-  constructor(id, name) {
-    this.id = id;
-    this.name = name;
+import User from './User.js'
+import { Roles } from "./helpers/roles.js";
+export default class Player extends User {
+  constructor(id, name, email, role = Roles.PLAYER , status = "inactive") {
+    super(this.Id,name,email,this.password,role,status)
 
     // statistics
     this.wins = 0;

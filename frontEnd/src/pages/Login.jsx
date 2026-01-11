@@ -85,25 +85,6 @@ export default function Login() {
           </div>
         )}
         
-        <div style={{ marginBottom: "15px" }}>
-          <select
-            value={loginAs}
-            onChange={(e) => setLoginAs(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              fontSize: "1rem",
-              border: "1px solid #ddd",
-              borderRadius: "4px",
-            }}
-          >
-            <option value="player">Login as Player</option>
-            <option value="operator">Login as Operator</option>
-            <option value="leagueOwner">Login as League Owner</option>
-            <option value="advertiser">Login as Advertiser</option>
-            <option value="spectator">Login as Spectator</option>
-          </select>
-        </div>
 
         <div style={{ marginBottom: '15px' }}>
           <input
@@ -160,6 +141,23 @@ export default function Login() {
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
+      <button
+  type="button"
+  onClick={() => navigate("/spectator")}
+  style={{
+    width: "100%",
+    padding: "10px",
+    marginTop: "10px",
+    fontSize: "1rem",
+    backgroundColor: "#6c757d",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+  }}
+>
+  Continue as Spectator
+</button>
 
       <p style={{ marginTop: '15px', textAlign: 'center' }}>
         Don't have an account?{' '}

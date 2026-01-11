@@ -1,5 +1,6 @@
 import Ad from "./Ad";
 import User from "./User";
+import { Roles } from "./helpers/roles";
 
 export default class Advertiser extends User {
   constructor(
@@ -7,8 +8,8 @@ export default class Advertiser extends User {
     name,
     email,
     password,
-    role = "Advertiser",
-    status = "Pending"
+    role = Roles.ADVERTISER,
+    status = "inactive"
   ) {
     super(id, name, email, password, role, status);
     this.advertisements = [];
