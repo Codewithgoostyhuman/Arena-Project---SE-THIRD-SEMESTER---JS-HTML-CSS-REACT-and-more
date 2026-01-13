@@ -1,9 +1,3 @@
-// backend/games/GameEngine.js
-
-/**
- * Base GameEngine class
- * All game implementations should extend this class
- */
 export default class GameEngine {
   constructor(gameType, players) {
     this.gameType = gameType;

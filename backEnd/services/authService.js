@@ -1,4 +1,3 @@
-// backend/services/authService.js
 import User from "../schemas/UserSchema.js";
 import { generateToken } from "../utils/jwt.js";
 
@@ -11,14 +10,14 @@ export default class AuthService {
   static async register({ name, email, password, role = "player" }) {
     // Check if user already exists
     const existingUser = await User.findOne({ 
-      $or: [{ email }, { name }] 
+      $or: [{ email }, { name: name }] // Changed: query by 'name' field but compare with 'username' param
     });
     
     if (existingUser) {
       if (existingUser.email === email) {
         throw new Error("Email already registered");
       }
-      if (existingUser.name === name) {
+      if (existingUser.name === name) { // Changed: compare with username
         throw new Error("Username already taken");
       }
     }
@@ -31,7 +30,7 @@ export default class AuthService {
 
     // Create user with pending status (requires operator approval)
     const user = new User({
-      name: name.replace(/\s+/g, ""), // Remove spaces from username
+      name: name.replace(/\s+/g, ""), // Changed: use username parameter
       email,
       password,
       role,

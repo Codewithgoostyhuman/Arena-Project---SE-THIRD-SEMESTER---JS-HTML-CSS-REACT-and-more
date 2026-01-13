@@ -1,5 +1,5 @@
 // backend/controllers/playerController.js - Complete version
-import PlayerService from "../services/playerService.js";
+import PlayerService from '../services/playerService.js'
 
 // ==================== LEAGUE OPERATIONS ====================
 

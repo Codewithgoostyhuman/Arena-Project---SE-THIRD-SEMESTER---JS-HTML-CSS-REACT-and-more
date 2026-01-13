@@ -2,7 +2,7 @@
 import express from "express";
 
 // Import all route files
-import authRoutes from "./authRoutes.js";
+import authRoutes from './authRoutes.js'
 import userRoutes from "./userRoutes.js";
 import playerRoutes from "./playerRoutes.js";
 import leagueOwnerRoutes from "./leagueOwnerRoutes.js";
@@ -14,7 +14,7 @@ import matchRoutes from "./matchRoutes.js";
 import ratingFormulaRoutes from "./ratingFormulaRoutes.js";
 import tournamentStyleRoutes from "./tournamentStyleRoutes.js";
 import advertiserRoutes from "./advertiserRoutes.js";
-import advertisementRoutes from "./advertisementRoutes.js";
+import advertisementRoutes from "./advertismentRoutes.js";
 import accountRoutes from "./accountRoutes.js";
 import interestGroupRoutes from "./interestGroupRoutes.js";
 import arenaRoutes from "./arenaRoutes.js";
@@ -156,7 +156,7 @@ router.get("/health", (req, res) => {
 // 404 HANDLER FOR UNDEFINED ROUTES
 // ==========================================
 
-router.use("*", (req, res) => {
+router.use((req, res) => {
   res.status(404).json({
     status: "error",
     message: `Route ${req.originalUrl} not found`

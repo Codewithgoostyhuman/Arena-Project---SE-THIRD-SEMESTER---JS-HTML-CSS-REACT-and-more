@@ -400,6 +400,104 @@ class TournamentService {
       .populate("matches")
       .sort({ createdAt: -1 });
   }
+
+
+/**
+ * KICKOFF TOURNAMENT - Automatically start when application period ends
+ */
+async kickoffTournamentAutomatically(tournamentId) {
+  const tournament = await TournamentModel.findById(tournamentId);
+  
+  if (tournament.status !== 'open_for_applications') {
+    throw new Error('Tournament not ready to kickoff');
+  }
+  
+  // Auto-approve applications up to maxPlayers
+  const pendingApps = tournament.applications
+    .filter(app => app.status === 'pending')
+    .slice(0, tournament.maxPlayers - tournament.players.length);
+  
+  pendingApps.forEach(app => {
+    app.status = 'approved';
+    app.reviewedAt = new Date();
+    if (!tournament.players.includes(app.player)) {
+      tournament.players.push(app.player);
+    }
+  });
+  
+  // Reject remaining applications
+  tournament.applications
+    .filter(app => app.status === 'pending')
+    .forEach(app => {
+      app.status = 'rejected';
+      app.reviewedAt = new Date();
+    });
+  
+  tournament.status = 'upcoming';
+  await tournament.save();
+  
+  return tournament;
+}
+
+/**
+ * CRON JOB: Check and kickoff tournaments whose application period ended
+ */
+async checkAndKickoffTournaments() {
+  const now = new Date();
+  
+  const tournamentsToKickoff = await TournamentModel.find({
+    status: 'open_for_applications',
+    applicationEndDate: { $lte: now }
+  });
+  
+  const results = [];
+  for (const tournament of tournamentsToKickoff) {
+    try {
+      const kicked = await this.kickoffTournamentAutomatically(tournament._id);
+      results.push({ id: kicked._id, status: 'kicked off' });
+    } catch (err) {
+      results.push({ id: tournament._id, status: 'error', error: err.message });
+    }
+  }
+  
+  return results;
+}
+/**
+ * ARCHIVE TOURNAMENT - Mark as archived and generate final report
+ */
+async archiveTournament(tournamentId) {
+  const tournament = await TournamentModel.findById(tournamentId)
+    .populate('players winners matches league');
+  
+  if (!tournament) throw new Error('Tournament not found');
+  
+  if (tournament.status !== 'finished') {
+    throw new Error('Only finished tournaments can be archived');
+  }
+  
+  // Generate archive data
+  const archiveData = {
+    tournamentId: tournament._id,
+    name: tournament.name,
+    completedAt: new Date(),
+    totalMatches: tournament.matches.length,
+    winner: tournament.winners[0],
+    participants: tournament.players.length,
+    league: tournament.league._id,
+    statistics: {
+      totalGames: tournament.matches.length,
+      averageMatchDuration: 'N/A', // Calculate if you track time
+    }
+  };
+  
+  tournament.status = 'archived';
+  tournament.archivedAt = new Date();
+  tournament.archiveData = archiveData;
+  
+  await tournament.save();
+  
+  return tournament;
+}
 }
 
 export default new TournamentService();

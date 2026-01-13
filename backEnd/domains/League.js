@@ -1,4 +1,4 @@
-import LeagueModel from "../schemas/LeagueSchema.js";
+import League from "../schemas/LeagueSchema.js";
 import User from "../schemas/UserSchema.js";
 
 export default class LeagueDomain {
@@ -18,19 +18,19 @@ export default class LeagueDomain {
   }
 
   static async updateLeague(leagueId, data) {
-    const league = await LeagueModel.findByIdAndUpdate(leagueId, data, { new: true });
+    const league = await League.findByIdAndUpdate(leagueId, data, { new: true });
     if (!league) throw new Error("League not found");
     return league;
   }
 
   static async deleteLeague(leagueId) {
-    const league = await LeagueModel.findByIdAndDelete(leagueId);
+    const league = await League.findByIdAndDelete(leagueId);
     if (!league) throw new Error("League not found");
     return league;
   }
 
   static async getLeague(leagueId) {
-    const league = await LeagueModel.findById(leagueId)
+    const league = await League.findById(leagueId)
       .populate("owner", "name email")
       .populate("players", "name email stats")
       .populate("tournaments", "name style status")
@@ -47,7 +47,7 @@ export default class LeagueDomain {
   }
 
   static async addPlayer(leagueId, playerId) {
-    const league = await LeagueModel.findById(leagueId);
+    const league = await League.findById(leagueId);
     if (!league) throw new Error("League not found");
     if (league.players.includes(playerId)) throw new Error("Player already in league");
     league.players.push(playerId);
@@ -56,7 +56,7 @@ export default class LeagueDomain {
   }
 
   static async removePlayer(leagueId, playerId) {
-    const league = await LeagueModel.findById(leagueId);
+    const league = await League.findById(leagueId);
     if (!league) throw new Error("League not found");
     league.players = league.players.filter(p => p.toString() !== playerId.toString());
     await league.save();
@@ -64,25 +64,25 @@ export default class LeagueDomain {
   }
 
   static async getPlayers(leagueId) {
-    const league = await LeagueModel.findById(leagueId).populate("players", "name email stats");
+    const league = await League.findById(leagueId).populate("players", "name email stats");
     if (!league) throw new Error("League not found");
     return league.players;
   }
 
   static async getTournaments(leagueId) {
-    const league = await LeagueModel.findById(leagueId).populate("tournaments");
+    const league = await League.findById(leagueId).populate("tournaments");
     if (!league) throw new Error("League not found");
     return league.tournaments;
   }
 
   static async getApplications(leagueId) {
-    const league = await LeagueModel.findById(leagueId).populate("applications.player", "name email");
+    const league = await League.findById(leagueId).populate("applications.player", "name email");
     if (!league) throw new Error("League not found");
     return league.applications;
   }
 
   static async approveApplication(leagueId, applicationId) {
-    const league = await LeagueModel.findById(leagueId);
+    const league = await League.findById(leagueId);
     if (!league) throw new Error("League not found");
 
     const app = league.applications.id(applicationId);
@@ -95,7 +95,7 @@ export default class LeagueDomain {
   }
 
   static async rejectApplication(leagueId, applicationId) {
-    const league = await LeagueModel.findById(leagueId);
+    const league = await League.findById(leagueId);
     if (!league) throw new Error("League not found");
 
     const app = league.applications.id(applicationId);
@@ -107,7 +107,7 @@ export default class LeagueDomain {
   }
 
   static async applyToLeague(playerId, leagueId) {
-    const league = await LeagueModel.findById(leagueId);
+    const league = await League.findById(leagueId);
     if (!league) throw new Error("League not found");
 
     const alreadyApplied = league.applications.some(app => app.player.toString() === playerId.toString());

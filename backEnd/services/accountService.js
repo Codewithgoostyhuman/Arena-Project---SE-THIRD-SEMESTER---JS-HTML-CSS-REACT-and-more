@@ -1,5 +1,5 @@
 // services/accountService.js
-import Account from "../domains/Account.js";
+import Account from '../domains/Account.js'
 import AccountModel from "../schemas/AccountSchema.js";
 
 class AccountService {

@@ -2,7 +2,7 @@
 import Match from "../schemas/MatchSchema.js";
 import Tournament from "../schemas/TournamentSchema.js";
 import Game from "../schemas/GameSchema.js";
-import TicTacToeEngine from "../games/TicTacToeEngine.js";
+import TicTacToeEngine from "../domains/GameLogics/tictactoelogic.js";
 
 class MatchService {
   constructor() {

@@ -1,6 +1,5 @@
 // controllers/accountController.js
-import accountService from "../services/accountService.js";
-
+import accountService from "../services/accountService.js"
 export const createAccount = async (req, res) => {
   try {
     const { initialBalance, lowBalanceThreshold } = req.body;

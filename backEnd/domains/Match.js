@@ -1,11 +1,11 @@
-import MatchModel from "../schemas/MatchSchema.js";
+import Match from "../schemas/MatchSchema.js";
 
 export default class Match {
   constructor() {}
 
   async createMatch(data) {
     try {
-      const newMatch = new MatchModel(data);
+      const newMatch = new Match(data);
       return await newMatch.save();
     } catch (err) {
       throw new Error(`Error creating match: ${err.message}`);
@@ -14,7 +14,7 @@ export default class Match {
 
   async updateMatch(id, data) {
     try {
-      const updatedMatch = await MatchModel.findByIdAndUpdate(id, data, { new: true });
+      const updatedMatch = await Match.findByIdAndUpdate(id, data, { new: true });
       if (!updatedMatch) throw new Error("Match not found");
       return updatedMatch;
     } catch (err) {
@@ -24,7 +24,7 @@ export default class Match {
 
   async deleteMatch(id) {
     try {
-      const deletedMatch = await MatchModel.findByIdAndDelete(id);
+      const deletedMatch = await Match.findByIdAndDelete(id);
       if (!deletedMatch) throw new Error("Match not found");
       return deletedMatch;
     } catch (err) {
@@ -34,7 +34,7 @@ export default class Match {
 
   async getMatchById(id) {
     try {
-      const match = await MatchModel.findById(id)
+      const match = await Match.findById(id)
         .populate("league")
         .populate("tournament")
         .populate("players")
@@ -59,21 +59,21 @@ export default class Match {
   }
 
   async getMatchesByLeague(leagueId) {
-    return await MatchModel.find({ league: leagueId })
+    return await Match.find({ league: leagueId })
       .populate("tournament")
       .populate("players")
       .populate("game");
   }
 
   async getMatchesByTournament(tournamentId) {
-    return await MatchModel.find({ tournament: tournamentId })
+    return await Match.find({ tournament: tournamentId })
       .populate("league")
       .populate("players")
       .populate("game");
   }
 
   async getMatchesByGame(gameId) {
-    return await MatchModel.find({ game: gameId })
+    return await Match.find({ game: gameId })
       .populate("league")
       .populate("tournament")
       .populate("players");
@@ -89,7 +89,7 @@ export default class Match {
 
   async exists(id) {
     try {
-      const match = await MatchModel.findById(id);
+      const match = await Match.findById(id);
       return !!match;
     } catch {
       return false;

@@ -1,5 +1,5 @@
 // backend/controllers/operatorController.js
-import OperatorService from "../services/operatorService.js";
+import OperatorService from "../services/operatorServices.js"
 
 // ==================== USER ====================
 export const updateUser = async (req, res) => {

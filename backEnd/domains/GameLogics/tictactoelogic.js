@@ -1,5 +1,4 @@
-// backend/games/TicTacToeEngine.js
-import GameEngine from "./GameEngine.js";
+import GameEngine from "../Game.js";
 
 export default class TicTacToeEngine extends GameEngine {
   constructor(players) {

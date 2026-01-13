@@ -1,4 +1,4 @@
-import TournamentStyleService from "../services/tournamentStyleService.js";
+import TournamentStyleService from "../services/tournamentStyleService.js"
 
 export const createTournamentStyle = async (req, res) => {
   try {

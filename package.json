@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-    "scripts": {
+  "scripts": {
     "dev": "concurrently \"npm run dev --prefix backEnd\" \"npm run dev --prefix frontEnd\""
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Codewithgoostyhuman/Arena-Project---SE-THIRD-SEMESTER---JS-HTML-CSS-REACT-and-more.git"
@@ -20,7 +19,18 @@
   },
   "homepage": "https://github.com/Codewithgoostyhuman/Arena-Project---SE-THIRD-SEMESTER---JS-HTML-CSS-REACT-and-more#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "concurrently": "^9.2.1",
-    "nodemon": "^3.1.11"
+    "express-validator": "^7.3.1",
+    "fs": "^0.0.1-security",
+    "http": "^0.0.1-security",
+    "lucide-react": "^0.562.0",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.12",
+    "nodemon": "^3.1.11",
+    "path": "^0.12.7",
+    "socket.io": "^4.8.3"
   }
 }

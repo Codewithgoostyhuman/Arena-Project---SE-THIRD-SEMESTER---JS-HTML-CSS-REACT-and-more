@@ -1,39 +1,71 @@
-import InterestGroupDomain from "../domains/InterestGroupDomain.js";
+import LeagueOwnerDomain from "../domains/LeagueOwner.js";
 
-export default class InterestGroupService {
-  static create(data) {
-    return InterestGroupDomain.create(data);
+export default class LeagueOwnerService {
+
+  /* ====================
+     LEAGUE OWNER
+  ==================== */
+  static createLeagueOwner(userId) {
+    return LeagueOwnerDomain.createLeagueOwner(userId);
   }
 
-  static getAll() {
-    return InterestGroupDomain.getAll();
+  static getAllLeagueOwners() {
+    return LeagueOwnerDomain.getAllLeagueOwners();
   }
 
-  static getById(id) {
-    return InterestGroupDomain.getById(id);
+  static getLeagueOwnerById(id) {
+    return LeagueOwnerDomain.getLeagueOwnerById(id);
   }
 
-  static update(id, data) {
-    return InterestGroupDomain.update(id, data);
+  static updateLeagueOwner(id, data) {
+    return LeagueOwnerDomain.updateLeagueOwner(id, data);
   }
 
-  static delete(id) {
-    return InterestGroupDomain.delete(id);
+  static deleteLeagueOwner(id) {
+    return LeagueOwnerDomain.deleteLeagueOwner(id);
   }
 
-  static addMember(groupId, userId) {
-    return InterestGroupDomain.addMember(groupId, userId);
+  /* ====================
+     LEAGUE
+  ==================== */
+  static createLeague(ownerId, data) {
+    return LeagueOwnerDomain.createLeague(ownerId, data);
   }
 
-  static removeMember(groupId, userId) {
-    return InterestGroupDomain.removeMember(groupId, userId);
+  static updateLeague(leagueId, data) {
+    return LeagueOwnerDomain.updateLeague(leagueId, data);
   }
 
-  static addGame(groupId, gameId) {
-    return InterestGroupDomain.addGame(groupId, gameId);
+  static deleteLeague(leagueId) {
+    return LeagueOwnerDomain.deleteLeague(leagueId);
   }
 
-  static addLeague(groupId, leagueId) {
-    return InterestGroupDomain.addLeague(groupId, leagueId);
+  static startLeague(leagueId) {
+    return LeagueOwnerDomain.startLeague(leagueId);
+  }
+
+  /* ====================
+     TOURNAMENT
+  ==================== */
+  static createTournament(leagueId, data) {
+    return LeagueOwnerDomain.createTournament(leagueId, data);
+  }
+
+  static updateTournament(tournamentId, data) {
+    return LeagueOwnerDomain.updateTournament(tournamentId, data);
+  }
+
+  static startTournament(tournamentId) {
+    return LeagueOwnerDomain.startTournament(tournamentId);
+  }
+  static deleteTournament(tournamentId) {
+  return LeagueOwnerDomain.deleteTournament(tournamentId);
+}
+
+  /* ====================
+     APPLICATION
+  ==================== */
+  static handleApplication(applicationId, action) {
+    return LeagueOwnerDomain.handleApplication(applicationId, action);
   }
 }

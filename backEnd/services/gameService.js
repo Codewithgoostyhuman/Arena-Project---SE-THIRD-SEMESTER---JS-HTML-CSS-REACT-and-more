@@ -1,4 +1,3 @@
-// backend/services/gameService.js
 import GameDomain from "../domains/Game.js";
 import Game from "../schemas/GameSchema.js";
 

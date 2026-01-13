@@ -5,6 +5,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import router from "./routes/index.js";
+import { createServer } from 'http';
+import { initializeSocketIO } from './sockets/socketHandler.js';
+import { initializeScheduledJobs } from "./jobs/scheduledJobs.js";
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +20,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
   credentials: true // Allow cookies to be sent
 }));
 
@@ -81,17 +84,17 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/arena";
-
+const server = createServer(app);
+const io = initializeSocketIO(server);
+app.set('io', io);
 mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected successfully");
-    
+    initializeScheduledJobs();
     // Start server after successful DB connection
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
+      console.log(`✅ Server with WebSocket running on port ${PORT}`);
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🌐 API available at: http://localhost:${PORT}/api`);

@@ -1,6 +1,6 @@
-import Game from "../Game";
+import GameEngine from "../Game";
 
-export default class RockPaperScissors extends Game {
+export default class RockPaperScissors extends GameEngine {
   constructor(players) {
     super(players);
     this.moves = {};

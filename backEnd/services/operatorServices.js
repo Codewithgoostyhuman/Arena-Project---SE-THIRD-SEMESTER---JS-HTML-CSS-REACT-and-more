@@ -1,5 +1,5 @@
 // backend/services/operatorService.js
-import OperatorDomain from "../domains/Operator.js";
+import Operator from "../domains/Operator.js";
 
 export default class OperatorService {
   // ==================== USER MANAGEMENT ====================
@@ -8,70 +8,70 @@ export default class OperatorService {
    * Get all users with optional filters
    */
   static async getAllUsers(role = null, status = null) {
-    return await OperatorDomain.getAllUsers(role, status);
+    return await Operator.getAllUsers(role, status);
   }
 
   /**
    * Get user by ID
    */
   static async getUserById(id) {
-    return await OperatorDomain.getUserById(id);
+    return await Operator.getUserById(id);
   }
 
   /**
    * Update user
    */
   static async updateUser(id, data) {
-    return await OperatorDomain.updateUser(id, data);
+    return await Operator.updateUser(id, data);
   }
 
   /**
    * Delete user
    */
   static async deleteUser(id) {
-    return await OperatorDomain.deleteUser(id);
+    return await Operator.deleteUser(id);
   }
 
   /**
    * Activate user by ID
    */
   static async activateUserById(id) {
-    return await OperatorDomain.activateUserById(id);
+    return await Operator.activateUserById(id);
   }
 
   /**
    * Deactivate user by ID
    */
   static async deactivateUserById(id) {
-    return await OperatorDomain.deactivateUserById(id);
+    return await Operator.deactivateUserById(id);
   }
 
   /**
    * Activate user by name
    */
   static async activateUserByName(name) {
-    return await OperatorDomain.activateUserByName(name);
+    return await Operator.activateUserByName(name);
   }
 
   /**
    * Change user role
    */
   static async changeUserRole(id, newRole) {
-    return await OperatorDomain.changeUserRole(id, newRole);
+    return await Operator.changeUserRole(id, newRole);
   }
 
   /**
    * Get pending users (awaiting approval)
    */
   static async getPendingUsers() {
-    return await OperatorDomain.getAllUsers(null, "pending");
+    return await Operator.getAllUsers(null, "pending");
   }
 
   /**
    * Approve user registration
    */
   static async approveUser(id) {
-    return await OperatorDomain.activateUserById(id);
+    return await Operator.activateUserById(id);
   }
 
   /**

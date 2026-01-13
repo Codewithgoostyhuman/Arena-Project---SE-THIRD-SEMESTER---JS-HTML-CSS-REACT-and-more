@@ -1,4 +1,4 @@
-import ArenaDomain from "../domains/ArenaDomain.js";
+import ArenaDomain from "../domains/Arena.js";
 
 export default class ArenaService {
   static async createArena(data) {

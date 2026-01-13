@@ -1,5 +1,5 @@
 import express from "express";
-import * as ArenaController from "../controllers/arenaController.js";
+import * as ArenaController from "../controllers/arenaControllers.js";
 import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
 
 const router = express.Router();

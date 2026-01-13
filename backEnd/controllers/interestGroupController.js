@@ -1,4 +1,4 @@
-import InterestGroupService from "../services/interestGroupService.js";
+import InterestGroupService from "../services/interestGroupService";
 
 export const createGroup = async (req, res) => {
   try {

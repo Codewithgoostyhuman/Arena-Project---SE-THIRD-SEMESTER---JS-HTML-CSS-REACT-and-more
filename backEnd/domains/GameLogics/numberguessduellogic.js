@@ -1,6 +1,6 @@
-import Game from "../Game";
+import GameEngine from "../Game.js";
 
-export default class NumberGuessDuel extends Game {
+export default class NumberGuessDuel extends GameEngine {
   constructor(players) {
     super(players);
     this.secretNumbers = {};

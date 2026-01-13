@@ -1,4 +1,4 @@
-import ApplicationModel from "../schemas/ApplicationSchema.js";
+import Application from "../schemas/ApplicationSchema.js";
 
 export default class ApplicationDomain {
   constructor(playerId, targetType, targetId, status = "pending") {
@@ -10,7 +10,7 @@ export default class ApplicationDomain {
 
   // Create new application
   async create() {
-    const appDoc = new ApplicationModel({
+    const appDoc = new Application({
       player: this.player,
       targetType: this.targetType,
       targetId: this.targetId,
@@ -67,27 +67,27 @@ export default class ApplicationDomain {
 
   // Delete
   static async delete(id) {
-    return await ApplicationModel.findByIdAndDelete(id);
+    return await Application.findByIdAndDelete(id);
   }
 
   static async findById(id) {
-    const doc = await ApplicationModel.findById(id).populate("player", "name email");
+    const doc = await Application.findById(id).populate("player", "name email");
     if (!doc) return null;
     return ApplicationDomain.fromDocument(doc);
   }
 
   static async findByPlayer(playerId) {
-    const docs = await ApplicationModel.find({ player: playerId }).populate("player", "name email");
+    const docs = await Application.find({ player: playerId }).populate("player", "name email");
     return docs.map(doc => ApplicationDomain.fromDocument(doc));
   }
 
   static async findByTarget(targetType, targetId) {
-    const docs = await ApplicationModel.find({ targetType, targetId }).populate("player", "name email");
+    const docs = await Application.find({ targetType, targetId }).populate("player", "name email");
     return docs.map(doc => ApplicationDomain.fromDocument(doc));
   }
 
   static async findAll() {
-    const docs = await ApplicationModel.find().populate("player", "name email");
+    const docs = await Application.find().populate("player", "name email");
     return docs.map(doc => ApplicationDomain.fromDocument(doc));
   }
 }

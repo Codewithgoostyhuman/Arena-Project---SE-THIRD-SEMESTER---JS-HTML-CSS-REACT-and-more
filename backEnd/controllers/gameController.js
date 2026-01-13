@@ -1,4 +1,4 @@
-import GameService from "../services/gameService.js";
+import GameService from '../services/gameService.js'
 
 export const createGame = async (req, res) => {
   try {

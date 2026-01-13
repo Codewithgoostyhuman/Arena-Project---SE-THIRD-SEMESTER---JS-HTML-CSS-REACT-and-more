@@ -1,4 +1,4 @@
-import ArenaModel from "../schemas/ArenaSchema.js";
+import Arena from "../schemas/ArenaSchema.js";
 
 export default class ArenaDomain {
   constructor({
@@ -18,22 +18,22 @@ export default class ArenaDomain {
   }
 
   async create() {
-    const existing = await ArenaModel.findOne();
+    const existing = await Arena.findOne();
     if (existing) throw new Error("Arena already exists");
     const arena = new ArenaModel(this);
     return await arena.save();
   }
 
   static async get() {
-    return await ArenaModel.findOne();
+    return await Arena.findOne();
   }
 
   static async update(data) {
-    return await ArenaModel.findOneAndUpdate({}, { $set: data }, { new: true });
+    return await Arena.findOneAndUpdate({}, { $set: data }, { new: true });
   }
 
   static async toggleMaintenance() {
-    const arena = await ArenaModel.findOne();
+    const arena = await Arena.findOne();
     if (!arena) throw new Error("Arena not found");
     arena.maintenanceMode = !arena.maintenanceMode;
     return await arena.save();

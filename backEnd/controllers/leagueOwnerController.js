@@ -1,5 +1,5 @@
 // backend/controllers/leagueOwnerController.js
-import LeagueOwnerService from "../services/leagueOwnerService.js";
+import LeagueOwnerService from '../services/leagueOwnerServices.js'
 
 /* ====================
    LEAGUE OWNER

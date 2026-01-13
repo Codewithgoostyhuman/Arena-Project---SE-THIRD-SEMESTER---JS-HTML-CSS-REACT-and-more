@@ -1,5 +1,5 @@
 // controllers/advertisementController.js
-import advertisementService from "../services/advertisementService.js";
+import advertisementService from '../services/advertisementService.js'
 
 export const createAdvertisement = async (req, res) => {
   try {

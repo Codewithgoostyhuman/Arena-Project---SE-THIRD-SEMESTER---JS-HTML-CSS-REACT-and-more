@@ -1,5 +1,5 @@
 // services/advertisementService.js
-import Advertisement from "../domains/Advertisement.js";
+import Advertisement from "../domains/Advertisement.js"
 
 class AdvertisementService {
   // Create new advertisement
