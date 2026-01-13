@@ -34,7 +34,7 @@ export const Roles = {
   OPERATOR: 'operator',
   LEAGUE_OWNER: 'leagueOwner',
   PLAYER: 'player',
-  ADVERTISER: 'advertiser', // ADD THIS LINE!
+  ADVERTISER: 'advertiser', 
 };
 
 export const authorizeRoles = (...allowedRoles) => {

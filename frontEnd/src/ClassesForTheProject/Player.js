@@ -3,8 +3,8 @@ import { MatchResult } from "./helpers/matchResult.js";
 import User from './User.js'
 import { Roles } from "./helpers/roles.js";
 export default class Player extends User {
-  constructor(id, name, email, role = Roles.PLAYER , status = "inactive") {
-    super(this.Id,name,email,this.password,role,status)
+  constructor(id, name, email,password, role = Roles.PLAYER , status = "inactive") {
+    super(id,name,email,password,role,status)
 
     // statistics
     this.wins = 0;
