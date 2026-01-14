@@ -110,6 +110,7 @@ export default function RegisterView({ setCurrentView }) {
                             <option value="player">Player</option>
                             <option value="leagueOwner">League Owner</option>
                             <option value="advertiser">Advertiser</option>
+                            <option value= "operator">Operator</option>
                         </select>
                     </div>
 

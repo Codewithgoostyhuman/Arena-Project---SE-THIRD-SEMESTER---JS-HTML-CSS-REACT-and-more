@@ -64,7 +64,14 @@ export default class OperatorService {
    * Get pending users (awaiting approval)
    */
   static async getPendingUsers() {
-    return await Operator.getAllUsers(null, "pending");
+    return await Operator.getPendingUsers();
+  }
+
+  /**
+   * Get active users
+   */
+  static async getActiveUsers() {
+    return await Operator.getActiveUsers();
   }
 
   /**
@@ -108,72 +115,72 @@ export default class OperatorService {
   // ==================== GAME MANAGEMENT ====================
 
   static async createGame(data) {
-    return await OperatorDomain.createGame(data);
+    return await Operator.createGame(data);
   }
 
   static async updateGame(id, data) {
-    return await OperatorDomain.updateGame(id, data);
+    return await Operator.updateGame(id, data);
   }
 
   static async deleteGame(id) {
-    return await OperatorDomain.deleteGame(id);
+    return await Operator.deleteGame(id);
   }
 
   static async getGameById(id) {
-    return await OperatorDomain.getGameById(id);
+    return await Operator.getGameById(id);
   }
 
   static async getAllGames() {
-    return await OperatorDomain.getAllGames();
+    return await Operator.getAllGames();
   }
 
   // ==================== RATING FORMULA MANAGEMENT ====================
 
   static async createRatingFormula(data) {
-    return await OperatorDomain.createRatingFormula(data);
+    return await Operator.createRatingFormula(data);
   }
 
   static async updateRatingFormula(id, data) {
-    return await OperatorDomain.updateRatingFormula(id, data);
+    return await Operator.updateRatingFormula(id, data);
   }
 
   static async deleteRatingFormula(id) {
-    return await OperatorDomain.deleteRatingFormula(id);
+    return await Operator.deleteRatingFormula(id);
   }
 
   static async getRatingFormulaById(id) {
-    return await OperatorDomain.getRatingFormulaById(id);
+    return await Operator.getRatingFormulaById(id);
   }
 
   static async getAllRatingFormulas() {
-    return await OperatorDomain.getAllRatingFormulas();
+    return await Operator.getAllRatingFormulas();
   }
 
   // ==================== ADVERTISER MANAGEMENT ====================
 
   static async approveAdvertiser(id) {
-    return await OperatorDomain.approveAdvertiser(id);
+    return await Operator.approveAdvertiser(id);
   }
 
   static async rejectAdvertiser(id) {
-    return await OperatorDomain.rejectAdvertiser(id);
+    return await Operator.rejectAdvertiser(id);
   }
 
   static async getPendingAdvertisers() {
-    return await OperatorDomain.getPendingAdvertisers();
+    return await Operator.getPendingAdvertisers();
   }
 
   // ==================== STATISTICS ====================
 
   static async getSystemStatistics() {
-    return await OperatorDomain.getSystemStatistics();
+    return await Operator.getSystemStatistics();
   }
 
   /**
    * Get detailed dashboard statistics
    */
   static async getDashboardStats() {
-    const stats = await OperatorDomain.getSystemStatistics();
+    const stats = await Operator.getSystemStatistics();
 
     // Add additional stats
     const Game = (await import("../schemas/GameSchema.js")).default;
@@ -190,7 +197,7 @@ export default class OperatorService {
       status: { $in: ["ongoing", "upcoming", "open_for_applications"] }
     });
 
-    const livMatches = await Match.countDocuments({ status: "live" });
+    const liveMatches = await Match.countDocuments({ status: "live" });
 
     return {
       ...stats,

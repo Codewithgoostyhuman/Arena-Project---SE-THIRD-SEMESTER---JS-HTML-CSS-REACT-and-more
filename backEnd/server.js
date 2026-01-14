@@ -83,12 +83,12 @@ app.use((err, req, res, next) => {
 // ==========================================
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/arena";
+const MONGO_URI = process.env.MONGO_URI;
 const server = createServer(app);
 const io = initializeSocketIO(server);
 app.set('io', io);
 mongoose
-  .connect(MONGO_URI)
+  .connect("mongodb+srv://arena-database:arena-data-base-123@arena-data.cmwzvyk.mongodb.net/")
   .then(() => {
     console.log("✅ MongoDB connected successfully");
     initializeScheduledJobs();

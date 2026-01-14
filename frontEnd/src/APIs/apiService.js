@@ -85,11 +85,70 @@ export const apiService = {
     },
 
     operator: {
-        getAllUsers: () => apiService.request('/operator/users'),
-        approveUser: (userId) => apiService.request(`/operator/users/${userId}/activate`, { method: 'POST' }),
-        createGame: (data) => apiService.request('/operator/games', {
+        // User Management
+        // User Management - FIXED ENDPOINTS
+        getAllUsers: (role, status) => {
+            const params = new URLSearchParams();
+            if (role) params.append('role', role);
+            if (status) params.append('status', status);
+            const query = params.toString() ? `?${params.toString()}` : '';
+            return apiService.request(`/operator/user${query}`); // Changed from /users to /user
+        },
+        getUserById: (id) => apiService.request(`/operator/user/${id}`),
+        getPendingUsers: () => apiService.request(`/operator/user/pending`),
+        getActiveUsers: () => apiService.request(`/operator/user/active`),
+        updateUser: (id, data) => apiService.request(`/operator/user/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+        deleteUser: (id) => apiService.request(`/operator/user/${id}`, { method: 'DELETE' }),
+        activateUserById: (id) => apiService.request(`/operator/user/activate/${id}`, { method: 'PATCH' }),
+        deactivateUserById: (id) => apiService.request(`/operator/user/deactivate/${id}`, { method: 'PATCH' }),
+        activateUserByName: (name) => apiService.request(`/operator/user/activate/name/${name}`, { method: 'PATCH' }),
+        changeUserRole: (id, newRole) => apiService.request(`/operator/user/${id}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ newRole }),
+        }),
+        approveUser: (id) => apiService.request(`/operator/user/approve/${id}`, { method: 'PATCH' }),
+        rejectUser: (id) => apiService.request(`/operator/user/reject/${id}`, { method: 'PATCH' }),
+        bulkApproveUsers: (userIds) => apiService.request('/operator/user/bulk-approve', {
+            method: 'POST',
+            body: JSON.stringify({ userIds }),
+        }),
+
+        // Game Management
+        createGame: (data) => apiService.request('/operator/game', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+        updateGame: (id, data) => apiService.request(`/operator/game/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+        deleteGame: (id) => apiService.request(`/operator/game/${id}`, { method: 'DELETE' }),
+        getGameById: (id) => apiService.request(`/operator/game/${id}`),
+        getAllGames: () => apiService.request('/operator/games'),
+
+        // Rating Formula Management
+        createRatingFormula: (data) => apiService.request('/operator/rating-formula', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        updateRatingFormula: (id, data) => apiService.request(`/operator/rating-formula/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+        deleteRatingFormula: (id) => apiService.request(`/operator/rating-formula/${id}`, { method: 'DELETE' }),
+        getRatingFormulaById: (id) => apiService.request(`/operator/rating-formula/${id}`),
+        getAllRatingFormulas: () => apiService.request('/operator/rating-formulas'),
+
+        // Advertiser Management
+        getPendingAdvertisers: () => apiService.request('/operator/advertiser/pending'),
+        approveAdvertiser: (id) => apiService.request(`/operator/advertiser/approve/${id}`, { method: 'PATCH' }),
+        rejectAdvertiser: (id) => apiService.request(`/operator/advertiser/reject/${id}`, { method: 'PATCH' }),
+
+        // Statistics
+        getSystemStatistics: () => apiService.request('/operator/statistics'),
+        getDashboardStats: () => apiService.request('/operator/dashboard-stats'),
     },
 };

@@ -123,6 +123,30 @@ export default class Operator {
       message: `Role changed from ${oldRole} to ${newRole}`
     };
   }
+  
+// Get all pending users regardless of role
+  static async getPendingUsers() {
+    let query = { status: "pending" };
+
+    return await User.find(query)
+      .populate('advertiserProfile')
+      .populate('leagues')
+      .populate('tournaments')
+      .select('-password')
+      .sort({ createdAt: -1 });
+  }
+
+  // Get all active users regardless of role
+  static async getActiveUsers() {
+    let query = { status: "active" };
+
+    return await User.find(query)
+      .populate('advertiserProfile')
+      .populate('leagues')
+      .populate('tournaments')
+      .select('-password')
+      .sort({ createdAt: -1 });
+  }
 
   /* ===============================
      GAME MANAGEMENT

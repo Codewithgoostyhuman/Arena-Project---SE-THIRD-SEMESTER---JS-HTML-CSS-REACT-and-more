@@ -43,16 +43,13 @@ export default function Navigation({ currentView, setCurrentView, showMobileMenu
                                     </>
                                 )}
 
-                                {currentUser.role === 'operator' && (
-                                    <>
-                                        <NavButton onClick={() => setCurrentView('manage-users')} active={currentView === 'manage-users'}>
-                                            Manage Users
-                                        </NavButton>
-                                        <NavButton onClick={() => setCurrentView('manage-games')} active={currentView === 'manage-games'}>
-                                            Games
-                                        </NavButton>
-                                    </>
-                                )}
+                               {currentUser.role === 'operator' && (
+    <>
+        <button onClick={() => setCurrentView('manage-users')}>Manage Users</button>
+        <button onClick={() => setCurrentView('manage-games')}>Manage Games</button>
+        <button onClick={() => setCurrentView('manage-rating-formulas')}>Rating Formulas</button>
+    </>
+)}
 
                                 <div className="flex items-center space-x-2 ml-4">
                                     <span className="text-sm text-gray-700">{currentUser.name}</span>

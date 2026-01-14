@@ -1,4 +1,4 @@
-import League from "../schemas/LeagueSchema.js";
+import LeagueModel from "../schemas/LeagueSchema.js";
 import User from "../schemas/UserSchema.js";
 
 export default class LeagueDomain {

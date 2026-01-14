@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Gamepad2, Shield } from 'lucide-react';
+import { Users,Trophy} from 'lucide-react';
 import StatsCard from '../reuseableComponents/StatsCard';
 export default function LeagueOwnerDashboard() {
     return (
@@ -17,7 +17,7 @@ export default function LeagueOwnerDashboard() {
             <StatsCard
                 title="Total Players"
                 value="0"
-                icon={<User className="h-8 w-8 text-green-600" />}
+                icon={<Users className="h-8 w-8 text-green-600" />}
             />
         </>
     );
