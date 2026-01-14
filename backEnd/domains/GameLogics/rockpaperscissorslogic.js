@@ -1,4 +1,4 @@
-import GameEngine from "../Game";
+import GameEngine from "../Game.js";
 
 export default class RockPaperScissors extends GameEngine {
   constructor(players) {
