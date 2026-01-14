@@ -2,7 +2,13 @@ import * as tournamentService from "../services/tournamentService.js";
 
 export const createTournament = async (req, res) => {
   try {
-    const tournament = await tournamentService.createTournament(req.body);
+    // Pass userId from authenticated user to service
+    const userId = req.user._id;
+    const tournament = await tournamentService.createTournament(
+      req.body, 
+      userId
+    );
+    console.log("I am create tournament function");
     res.status(201).json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -148,17 +154,10 @@ export const kickoffTournament = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+// Get live tournaments
 export const getLiveTournaments = async (req, res, next) => {
   try {
-    const tournaments = await Tournament.find({ 
-      status: 'in-progress',
-      visibility: 'public' // Assuming you have a visibility field
-    })
-    .populate('league', 'name logo')
-    .populate('game', 'name')
-    .sort({ startDate: -1 })
-    .limit(10);
-
+    const tournaments = await tournamentService.getLiveTournaments();
     res.json(tournaments);
   } catch (error) {
     console.error('Error fetching live tournaments:', error);
@@ -166,18 +165,10 @@ export const getLiveTournaments = async (req, res, next) => {
   }
 };
 
+// Get upcoming tournaments
 export const getUpcomingTournaments = async (req, res, next) => {
   try {
-    const tournaments = await Tournament.find({ 
-      status: 'registration',
-      startDate: { $gt: new Date() },
-      visibility: 'public'
-    })
-    .populate('league', 'name logo')
-    .populate('game', 'name')
-    .sort({ startDate: 1 })
-    .limit(10);
-
+    const tournaments = await tournamentService.getUpcomingTournaments();
     res.json(tournaments);
   } catch (error) {
     console.error('Error fetching upcoming tournaments:', error);
@@ -185,14 +176,11 @@ export const getUpcomingTournaments = async (req, res, next) => {
   }
 };
 
+// Get tournament by ID
 export const getTournamentById = async (req, res, next) => {
   try {
     const { tournamentId } = req.params;
-    
-    const tournament = await Tournament.findById(tournamentId)
-      .populate('league', 'name logo')
-      .populate('game', 'name')
-      .populate('winners.player', 'username avatar');
+    const tournament = await tournamentService.getTournamentById(tournamentId);
 
     if (!tournament) {
       return res.status(404).json({ message: 'Tournament not found' });
@@ -204,5 +192,18 @@ export const getTournamentById = async (req, res, next) => {
     next(error);
   }
 };
+export const getActiveLeagues = async (req, res, next) => {
+  try {
+    // Get leagues owned by the current user
+    const leagues = await League.find({ owner: req.user._id })
+      .populate('game', 'name')
+      .populate('ratingFormula', 'name')
+      .populate('players', 'username avatar')
+      .sort({ createdAt: -1 });
 
-
+    res.json(leagues);
+  } catch (error) {
+    console.error('Error fetching leagues:', error);
+    next(error);
+  }
+};

@@ -12,6 +12,62 @@ class TournamentService {
    * Step 2.3: ANNOUNCE TOURNAMENT - Complete Workflow
    * Creates tournament with sponsorship and notification support
    */
+  getLiveTournaments = async (req, res, next) => {
+    try {
+      const tournaments = await TournamentModel.find({ 
+        status: 'in-progress',
+        visibility: 'public' // Assuming you have a visibility field
+      })
+      .populate('league', 'name logo')
+      .populate('game', 'name')
+      .sort({ startDate: -1 })
+      .limit(10);
+  
+      res.json(tournaments);
+    } catch (error) {
+      console.error('Error fetching live tournaments:', error);
+      next(error);
+    }
+  };
+  
+  getUpcomingTournaments = async (req, res, next) => {
+    try {
+      const tournaments = await TournamentModel.find({ 
+        status: 'registration',
+        startDate: { $gt: new Date() },
+        visibility: 'public'
+      })
+      .populate('league', 'name logo')
+      .populate('game', 'name')
+      .sort({ startDate: 1 })
+      .limit(10);
+  
+      res.json(tournaments);
+    } catch (error) {
+      console.error('Error fetching upcoming tournaments:', error);
+      next(error);
+    }
+  };
+  
+  getTournamentById = async (req, res, next) => {
+    try {
+      const { tournamentId } = req.params;
+      
+      const tournament = await TournamentModel.findById(tournamentId)
+        .populate('league', 'name logo')
+        .populate('game', 'name')
+        .populate('winners.player', 'username avatar');
+  
+      if (!tournament) {
+        return res.status(404).json({ message: 'Tournament not found' });
+      }
+  
+      res.json(tournament);
+    } catch (error) {
+      console.error('Error fetching tournament:', error);
+      next(error);
+    }
+  };
   async announceTournament(leagueOwnerId, tournamentData) {
     const {
       name,
@@ -140,11 +196,60 @@ class TournamentService {
   /**
    * COMPLETE: Create Tournament (Enhanced)
    */
-  async createTournament(data) {
-    const tournament = new TournamentModel(data);
-    await tournament.save();
-    return tournament;
+ async createTournament(data, userId) {
+  const {
+    name,
+    league,
+    style,
+    maxPlayers,
+    applicationStartDate,
+    applicationEndDate,
+    playStartDate,
+    playEndDate
+  } = data;
+
+  // Validate dates
+  if (new Date(applicationStartDate) >= new Date(applicationEndDate)) {
+    throw new Error("Application end date must be after start date");
   }
+  if (new Date(applicationEndDate) >= new Date(playStartDate)) {
+    throw new Error("Play start date must be after application end date");
+  }
+  if (new Date(playStartDate) >= new Date(playEndDate)) {
+    throw new Error("Play end date must be after play start date");
+  }
+
+  // Verify league exists and user owns it
+  const leagueDoc = await LeagueModel.findById(league);
+  if (!leagueDoc) {
+    throw new Error("League not found");
+  }
+
+  if (leagueDoc.owner.toString() !== userId.toString()) {
+    throw new Error("You do not own this league");
+  }
+
+  // Create tournament
+  const tournament = new TournamentModel({
+    name,
+    league,
+    style,
+    maxPlayers,
+    applicationStartDate,
+    applicationEndDate,
+    playStartDate,
+    playEndDate,
+    status: 'planning'
+  });
+
+  await tournament.save();
+
+  // Add tournament to league's tournaments array
+  leagueDoc.tournaments.push(tournament._id);
+  await leagueDoc.save();
+
+  return tournament;
+}
 
   /**
    * Get tournament by ID

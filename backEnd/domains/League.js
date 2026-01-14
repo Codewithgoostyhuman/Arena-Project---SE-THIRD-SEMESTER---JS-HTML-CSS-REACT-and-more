@@ -1,5 +1,7 @@
 import LeagueModel from "../schemas/LeagueSchema.js";
 import User from "../schemas/UserSchema.js";
+import League from "../schemas/LeagueSchema.js"
+import Tournament from "../schemas/TournamentSchema.js"
 
 export default class LeagueDomain {
   static async createLeague(ownerId, leagueData) {
@@ -14,6 +16,8 @@ export default class LeagueDomain {
     });
 
     await league.save();
+    owner.leagues.push(league._id);
+    await owner.save();
     return league;
   }
 
@@ -39,6 +43,16 @@ export default class LeagueDomain {
     if (!league) throw new Error("League not found");
     return league;
   }
+ static async getLeaguesByOwner(ownerId) {
+  const leagues = await LeagueModel.find({ owner: ownerId })
+    .populate("game", "name")
+    .populate("ratingFormula", "name")
+    .populate("players", "username avatar")
+    .populate("tournaments", "name status maxPlayers")
+    .sort({ createdAt: -1 });
+
+  return leagues;
+}
 
   static async getActiveLeagues() {
     return LeagueModel.find({ status: "active" })

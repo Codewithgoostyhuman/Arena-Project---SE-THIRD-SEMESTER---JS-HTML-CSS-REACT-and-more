@@ -5,7 +5,8 @@ import LeagueService from "../services/leagueService.js";
 ========================== */
 export const createLeague = async (req, res) => {
   try {
-    const league = await LeagueService.createLeague(req.user._id, req.body);
+    const leagueData = {...req.body}
+    const league = await LeagueService.createLeague(req.user._id,leagueData);
     res.status(201).json(league);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -17,7 +18,7 @@ export const createLeague = async (req, res) => {
 ========================== */
 export const updateLeague = async (req, res) => {
   try {
-    const league = await LeagueService.updateLeague(req.params.leagueId, req.body);
+    const league = await LeagueService.updateLeague(req.params.leagueId, req.body,req.user._id);
     res.json(league);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -29,7 +30,7 @@ export const updateLeague = async (req, res) => {
 ========================== */
 export const deleteLeague = async (req, res) => {
   try {
-    const result = await LeagueService.deleteLeague(req.params.leagueId);
+    const result = await LeagueService.deleteLeague(req.params.leagueId,req.user._id);
     res.json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -52,14 +53,29 @@ export const getLeague = async (req, res) => {
    GET ALL ACTIVE LEAGUES
 ========================== */
 export const getActiveLeagues = async (req, res) => {
+   console.log("REQ USER:", req.user);
   try {
-    const leagues = await LeagueService.getActiveLeagues();
+    const leagues = await LeagueService.getActiveLeagues(req.user._id);
+     console.log("LEAGUES:", leagues);
     res.json(leagues);
   } catch (err) {
+    //  console.log("LEAGUES:", leagues);
     res.status(400).json({ message: err.message });
   }
 };
-
+/* ==========================
+   GET LEAGUES BY OWNER
+========================== */
+export const getLeaguesByOwner = async (req,res) =>{
+  try{
+    const ownerId = req.user._id;
+    const leagues = await LeagueService.getLeaguesByOwner(ownerId);
+    res.json(leagues)
+  }catch(err){
+    console.log("Error fetching leagues by owner: ",err);
+    res.status(400).json({message:err.message})
+  }
+};
 /* ==========================
    GET PLAYERS IN LEAGUE
 ========================== */

@@ -14,7 +14,7 @@ router.post(
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
   leagueController.createLeague
 );
-
+router.get("/my",authenticate,authorizeRoles(Roles.LEAGUE_OWNER,Roles.OPERATOR),leagueController.getLeaguesByOwner)
 router.put(
   '/:leagueId',
   authenticate,
