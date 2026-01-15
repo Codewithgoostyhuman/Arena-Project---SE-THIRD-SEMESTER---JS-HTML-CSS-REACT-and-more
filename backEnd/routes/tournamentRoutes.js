@@ -38,7 +38,7 @@ router.post(
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
   tournamentController.createTournament
 );
-
+router.get('/my',authenticate,authorizeRoles(Roles.LEAGUE_OWNER,Roles.OPERATOR),tournamentController.getMyTournaments)
 router.put(
   "/:tournamentId",
   authenticate,

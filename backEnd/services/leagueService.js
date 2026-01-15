@@ -1,5 +1,5 @@
 import LeagueDomain from "../domains/League.js";
-
+import LeagueModel from '../schemas/LeagueSchema.js'
 class LeagueService {
   async createLeague(ownerId, data) {
     return LeagueDomain.createLeague(ownerId, data);
@@ -7,10 +7,6 @@ class LeagueService {
 
   async updateLeague(leagueId, data) {
     return LeagueDomain.updateLeague(leagueId, data);
-  }
-
-  async deleteLeague(leagueId) {
-    return LeagueDomain.deleteLeague(leagueId);
   }
 
   async getLeague(leagueId) {
@@ -21,12 +17,12 @@ class LeagueService {
     return LeagueDomain.getActiveLeagues();
   }
 
-  async addPlayer(leagueId, playerId) {
-    return LeagueDomain.addPlayer(leagueId, playerId);
+  async addPlayer(leagueId, playerId,ownerId) {
+    return LeagueDomain.addPlayer(leagueId, playerId,ownerId);
   }
 
-  async removePlayer(leagueId, playerId) {
-    return LeagueDomain.removePlayer(leagueId, playerId);
+  async removePlayer(leagueId, playerId,ownerId) {
+    return LeagueDomain.removePlayer(leagueId,playerId ,ownerId);
   }
 
   async getPlayers(leagueId) {
@@ -37,18 +33,20 @@ class LeagueService {
     return LeagueDomain.getTournaments(leagueId);
   }
 
-  async getApplications(leagueId) {
-    return LeagueDomain.getApplications(leagueId);
+  async getApplications(leagueId,status) {
+    return LeagueDomain.getApplications(leagueId,status);
   }
 
-  async approveApplication(leagueId, applicationId) {
-    return LeagueDomain.approveApplication(leagueId, applicationId);
+  async approveApplication(leagueId, applicationId,ownerId) {
+    return LeagueDomain.approveApplication(leagueId, applicationId,ownerId);
   }
 
-  async rejectApplication(leagueId, applicationId) {
-    return LeagueDomain.rejectApplication(leagueId, applicationId);
+  async rejectApplication(leagueId, applicationId,ownerId) {
+    return LeagueDomain.rejectApplication(leagueId, applicationId,ownerId);
   }
-
+  async getPendingApplicationsCount(leagueId){
+    return LeagueDomain.getPendingApplicationsCount(leagueId)
+  }
   async applyToLeague(playerId, leagueId) {
     return LeagueDomain.applyToLeague(playerId, leagueId);
   }
@@ -74,31 +72,25 @@ async getActiveLeagues(userId) {
   //return this.getLeaguesByOwner(userId);
   
   // OR if you want to show all active leagues:
-  return LeagueModel.find({ status: 'active' })
-  .populate('game', 'name')
-  .populate('owner', 'username')
-  .sort({ createdAt: -1 });
+  try {
+    const leagues = await LeagueModel.find({ status: 'active' })
+      .populate('owner', 'name email')
+      .populate('game', 'name type description')
+      .populate('players', 'name email stats')
+      .sort({ createdAt: -1 });
+    
+    console.log(`Found ${leagues.length} active leagues`);
+    return leagues;
+  } catch (error) {
+    console.error('Error in getActiveLeagues service:', error);
+    throw error;
+  }
 }
 async getLeaguesByOwner(userId){
   return LeagueDomain.getLeaguesByOwner(userId);
 }
 async deleteLeague(leagueId, userId) {
-  const league = await LeagueModel.findById(leagueId);
-  
-  if (!league) {
-    throw new Error('League not found');
-  }
-
-  if (league.owner.toString() !== userId.toString()) {
-    throw new Error('You do not own this league');
-  }
-
-  // Delete associated tournaments
-  await TournamentModel.deleteMany({ league: leagueId });
-  await LeagueModel.findByIdAndDelete(leagueId);
-  
-  return { message: 'League deleted' };
+  return LeagueDomain.deleteLeague(leagueId,userId);
+};
 }
-}
-
 export default new LeagueService();

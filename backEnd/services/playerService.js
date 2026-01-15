@@ -62,6 +62,7 @@ export default class PlayerService {
    * Cancel application
    */
   static async cancelApplication(playerId, leagueId, applicationId) {
+    console.log("I am service.js for cancel application")
     return await Player.cancelApplication(playerId, leagueId, applicationId);
   }
 

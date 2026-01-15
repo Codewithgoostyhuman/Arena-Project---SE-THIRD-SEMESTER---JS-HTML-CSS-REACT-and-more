@@ -62,14 +62,20 @@ export const getMyApplications = async (req, res) => {
  * DELETE /api/players/league/:leagueId/application/:applicationId
  */
 export const cancelApplication = async (req, res) => {
+  console.log("Hi i am cancel application function")
+  console.log("Params:",req.params)
   try {
+    const userId = req.user._id;
+    console.log("I have fetched user id: ",userId)
     await PlayerService.cancelApplication(
-      req.user._id,
+      userId,
       req.params.leagueId,
       req.params.applicationId
     );
+    console.log("Application cancelled for user: ",userId)
     res.json({ message: "Application cancelled successfully" });
   } catch (err) {
+    console.log("Cancel application encountered this error: ",err)
     res.status(400).json({ message: err.message });
   }
 };

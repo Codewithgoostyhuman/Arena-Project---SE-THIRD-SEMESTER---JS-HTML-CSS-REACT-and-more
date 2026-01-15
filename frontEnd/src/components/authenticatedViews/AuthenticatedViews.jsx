@@ -9,6 +9,8 @@ import ManageUsersView from './manageUsersView';
 import ManageGamesView from './ManageGamesView';
 import ManageRatingFormulasView from './ManangeRatingView';
 import CreateTournamentView from './CreateTournamentView';
+import MyTournamentsView from './MyTournamentsView';
+import ApplicationsView from './LeagueOwnerApplicationView';
 
 export default function AuthenticatedViews({ currentView, setCurrentView ,setSelectedLeagueId ,selectedLeagueId}) {
     const { currentUser } = useAuth();
@@ -40,6 +42,10 @@ export default function AuthenticatedViews({ currentView, setCurrentView ,setSel
                     selectedLeagueId={selectedLeagueId}
                 />
             ) : null;
+        case 'my-tournaments':
+            return currentUser.role === 'leagueOwner' ? <MyTournamentsView setCurrentView={setCurrentView}/>:null;
+        case "applications":
+            return currentUser.role === "leagueOwner" ? <ApplicationsView setCurrentView={setCurrentView}/>:null
         default:
             return <DashboardView />;
     }

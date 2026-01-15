@@ -6,7 +6,7 @@ import RatingFormula from "../schemas/RatingFormulaSchema.js";
 import User from "../schemas/UserSchema.js";
 import tournamentStyleService from "./tournamentStyleService.js";
 import notificationService from "./notificationService.js";
-
+import Tournament from "../domains/Tournament.js";
 class TournamentService {
   /**
    * Step 2.3: ANNOUNCE TOURNAMENT - Complete Workflow
@@ -293,6 +293,12 @@ class TournamentService {
   async delete(id) {
     const tournament = await TournamentModel.findByIdAndDelete(id);
     if (!tournament) throw new Error("Tournament not found");
+    await MatchModel.deleteMany({tournament:id});
+    await LeagueModel.findByIdAndUpdate(
+      tournament.league,
+      {$pull:{tournaments:id}}
+
+    );
     return tournament;
   }
 
@@ -602,6 +608,15 @@ async archiveTournament(tournamentId) {
   await tournament.save();
   
   return tournament;
+}
+async getOwnerTournaments(userId){
+  try{
+    const tournaments = await Tournament.getOwnerTournaments(userId);
+    return tournaments;
+  }catch(err){
+    console.error("Error in get owner tournaments service: ",err);
+    throw new Error("Failed to fetch owners tournaments")
+  }
 }
 }
 

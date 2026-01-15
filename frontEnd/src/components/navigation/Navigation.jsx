@@ -37,8 +37,14 @@ export default function Navigation({ currentView, setCurrentView, showMobileMenu
                                         <NavButton onClick={() => setCurrentView('my-leagues')} active={currentView === 'my-leagues'}>
                                             My Leagues
                                         </NavButton>
+                                        <NavButton onClick={()=>{setCurrentView('my-tournaments')}} active={currentView==='my-tournaments'}>
+                                            My Tournaments
+                                        </NavButton>
                                         <NavButton onClick={() => setCurrentView('create-league')} active={currentView === 'create-league'}>
                                             Create League
+                                        </NavButton>
+                                        <NavButton onClick={()=>setCurrentView('applications')} active={currentView === 'applications'}>
+                                            Manage Applications
                                         </NavButton>
                                     </>
                                 )}

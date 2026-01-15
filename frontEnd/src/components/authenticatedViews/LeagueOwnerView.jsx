@@ -1,11 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Calendar, Plus, Edit, Trash2 } from 'lucide-react';
+import { apiService } from '../../APIs/apiService';
+import NavButton from '../navigation/navButton';
 
 export default function LeagueOwnerView({ setCurrentView,setSelectedLeagueId}) {
     const [leagues, setLeagues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+//     const [pendingCount,setPendingCount] = useState(0)
+//     useEffect(() => {
+//     fetchPendingCount();
+// }, []);
 
+// const fetchPendingCount = async (id) => {
+//     try {
+//         const count = await apiService.leagueOwner.getPendingApplicationsCount(id);
+//         setPendingCount(count);
+//     } catch (error) {
+//         console.error('Error fetching pending count:', error);
+//     }
+// };  
 
 
     const fetchMyLeagues = async () => {
@@ -95,7 +109,21 @@ export default function LeagueOwnerView({ setCurrentView,setSelectedLeagueId}) {
                     Create New League
                 </button>
             </div>
-
+            {/* <div className="flex gap-4">
+    {pendingCount > 0 && (
+        <button
+            onClick={() => setCurrentView('applications')}
+            className="relative flex items-center gap-2 bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition"
+        >
+            <Clock className="h-5 w-5" />
+            <span>Pending Applications</span>
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                {pendingCount}
+            </span>
+        </button>
+    )}
+    
+</div> */}
             {leagues.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-md p-12 text-center">
                     <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -147,19 +175,20 @@ export default function LeagueOwnerView({ setCurrentView,setSelectedLeagueId}) {
                                     )}
                                 </div>
 
-                                <div className="flex gap-2 pt-4 border-t border-gray-200">
+                                <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
                                     <button
                                         onClick={() => {setCurrentView('create-tournament'); setSelectedLeagueId(league._id)}}
                                         className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition text-sm"
                                     >
                                         Create Tournament
                                     </button>
+                                    
                                     <button
                                         onClick={() => handleDeleteLeague(league._id)}
-                                        className="p-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition"
+                                        className="p-2 items-center flex  border border-red-300 text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
                                         title="Delete League"
                                     >
-                                        <Trash2 className="h-5 w-5" />
+                                        <Trash2 className="h-5 w-5 m-auto" />
                                     </button>
                                 </div>
                             </div>

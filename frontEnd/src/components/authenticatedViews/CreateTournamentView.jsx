@@ -84,7 +84,7 @@ export default function CreateTournamentView({ setCurrentView, leagueId }) {
             if (!response.ok) {
                 const data = await response.json();
                 console.error('Server responded with:', data);
-                // throw new Error(data.message || 'Failed to create tournament');
+                throw new Error(data.message || 'Failed to create tournament');
             }
 
             alert('Tournament created successfully!');

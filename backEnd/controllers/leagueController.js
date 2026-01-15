@@ -1,3 +1,4 @@
+import leagueService from "../services/leagueService.js";
 import LeagueService from "../services/leagueService.js";
 
 /* ==========================
@@ -30,9 +31,11 @@ export const updateLeague = async (req, res) => {
 ========================== */
 export const deleteLeague = async (req, res) => {
   try {
-    const result = await LeagueService.deleteLeague(req.params.leagueId,req.user._id);
+    const userId = req.user._id;
+    const result = await LeagueService.deleteLeague(req.params.leagueId,userId);
     res.json(result);
   } catch (err) {
+    console.log("Error in delete league",err.message)
     res.status(400).json({ message: err.message });
   }
 };
@@ -52,14 +55,30 @@ export const getLeague = async (req, res) => {
 /* ==========================
    GET ALL ACTIVE LEAGUES
 ========================== */
+// export const getActiveLeagues = async (req, res) => {
+//    console.log("REQ USER:", req.user);
+//   try {
+//     const leagues = await LeagueService.getActiveLeagues(req.user._id);
+//      console.log("LEAGUES:", leagues);
+//     res.json(leagues);
+//   } catch (err) {
+//     //  console.log("LEAGUES:", leagues);
+//     res.status(400).json({ message: err.message });
+//   }
+// };
+/* ==========================
+   GET ALL ACTIVE LEAGUES
+========================== */
 export const getActiveLeagues = async (req, res) => {
-   console.log("REQ USER:", req.user);
+  console.log("=== GET ACTIVE LEAGUES ===");
+  console.log("User:", req.user?._id);
+  
   try {
     const leagues = await LeagueService.getActiveLeagues(req.user._id);
-     console.log("LEAGUES:", leagues);
+    console.log(`Returning ${leagues.length} active leagues`);
     res.json(leagues);
   } catch (err) {
-    //  console.log("LEAGUES:", leagues);
+    console.error("Error in getActiveLeagues controller:", err);
     res.status(400).json({ message: err.message });
   }
 };
@@ -105,7 +124,7 @@ export const getTournaments = async (req, res) => {
 ========================== */
 export const getApplications = async (req, res) => {
   try {
-    const applications = await LeagueService.getApplications(req.params.leagueId);
+    const applications = await LeagueService.getApplications(req.params.leagueId,"pending");
     res.json(applications);
   } catch (err) {
     res.status(404).json({ message: err.message });
@@ -117,7 +136,7 @@ export const getApplications = async (req, res) => {
 ========================== */
 export const approveApplication = async (req, res) => {
   try {
-    const app = await LeagueService.approveApplication(req.params.leagueId, req.params.applicationId);
+    const app = await LeagueService.approveApplication(req.params.leagueId, req.params.applicationId,req.user._id);
     res.json(app);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -129,13 +148,23 @@ export const approveApplication = async (req, res) => {
 ========================== */
 export const rejectApplication = async (req, res) => {
   try {
-    const app = await LeagueService.rejectApplication(req.params.leagueId, req.params.applicationId);
+    const app = await LeagueService.rejectApplication(req.params.leagueId, req.params.applicationId,req.user._id);
     res.json(app);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
-
+/* ==========================
+   PENDING APPLICATIONS COUNT
+========================== */
+export const getPendingApplicationsCount = async (req,res)=>{
+  try{
+    const app = await LeagueService.getPendingApplicationsCount(req.param.leagueId);
+    res.json(app);
+  }catch(err){
+    res.status(400).json({message:err.message});
+  }
+}
 /* ==========================
    PLAYER APPLIES TO LEAGUE
 ========================== */

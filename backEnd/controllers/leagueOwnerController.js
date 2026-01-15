@@ -139,3 +139,87 @@ export const handleApplication = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+/* ====================
+   LEAGUE APPLICATIONS
+==================== */
+export const getLeagueApplications = async (req, res) => {
+  console.log("Get league applications called");
+  console.log("User ID:", req.user.id);
+  console.log("User object:", req.user);
+  console.log("Get league applications called");
+  try {
+    const ownerId = req.user.id;
+    const { leagueId } = req.params; // Can be undefined
+    const { status } = req.query;    // Can be undefined
+    
+    const applications = await LeagueOwnerService.getLeagueApplications(ownerId, leagueId, status);
+    res.json(applications);
+    console.log("Fetched applications");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const approveLeagueApplication = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { applicationId } = req.params;
+    const app = await LeagueOwnerService.approveLeagueApplication(ownerId, applicationId);
+    res.json(app);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const rejectLeagueApplication = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { applicationId } = req.params;
+    const app = await LeagueOwnerService.rejectLeagueApplication(ownerId, applicationId);
+    res.json(app);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* ====================
+   TOURNAMENT APPLICATIONS
+==================== */
+export const getTournamentApplications = async (req, res) => {
+  console.log("Get tournament applications called");
+  try {
+    const ownerId = req.user.id;
+    const { tournamentId } = req.params; // Can be undefined
+    const { status } = req.query;        // Can be undefined
+    
+    const applications = await LeagueOwnerService.getTournamentApplications(ownerId, tournamentId, status);
+    res.json(applications);
+    console.log("Fetched tournament applications");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ message: err.message });
+  }
+};;
+
+export const approveTournamentApplication = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { applicationId } = req.params;
+    const app = await LeagueOwnerService.approveTournamentApplication(ownerId, applicationId);
+    res.json(app);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const rejectTournamentApplication = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { applicationId } = req.params;
+    const app = await LeagueOwnerService.rejectTournamentApplication(ownerId, applicationId);
+    res.json(app);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};

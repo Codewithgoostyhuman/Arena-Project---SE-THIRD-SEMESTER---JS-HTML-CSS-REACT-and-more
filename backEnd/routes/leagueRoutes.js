@@ -5,6 +5,9 @@ import { authenticate, authorizeRoles, Roles } from '../middleWare/auth.js';
 
 const router = express.Router();
 
+router.get("/my",authenticate,authorizeRoles(Roles.LEAGUE_OWNER,Roles.OPERATOR),leagueController.getLeaguesByOwner)
+router.get('/active',authenticate,leagueController.getActiveLeagues)
+router.get('/:leagueId/pending-applications-count',authenticate,authorizeRoles(Roles.LEAGUE_OWNER),leagueController.getPendingApplicationsCount)
 /* ================================
    LEAGUE CRUD
 ================================ */
@@ -14,7 +17,7 @@ router.post(
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
   leagueController.createLeague
 );
-router.get("/my",authenticate,authorizeRoles(Roles.LEAGUE_OWNER,Roles.OPERATOR),leagueController.getLeaguesByOwner)
+
 router.put(
   '/:leagueId',
   authenticate,

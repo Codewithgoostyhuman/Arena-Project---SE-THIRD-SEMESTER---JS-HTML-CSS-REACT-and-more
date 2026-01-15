@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Schema } from "mongoose";
 
 const LeagueSchema = new mongoose.Schema({
   name: { 
@@ -37,20 +38,8 @@ const LeagueSchema = new mongoose.Schema({
   }],
   
   applications: [{
-    player: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
-    },
-    appliedAt: {
-      type: Date,
-      default: Date.now
-    },
-    reviewedAt: Date
+    type: Schema.Types.ObjectId,
+    ref: 'Application'
   }],
   
   tournaments: [{

@@ -68,4 +68,33 @@ export default class LeagueOwnerService {
   static handleApplication(applicationId, action) {
     return LeagueOwnerDomain.handleApplication(applicationId, action);
   }
+  /* ====================
+   LEAGUE APPLICATIONS
+==================== */
+static getLeagueApplications(ownerId, leagueId, status) {
+  return LeagueOwnerDomain.getLeagueApplications(ownerId, leagueId, status);
+}
+
+static approveLeagueApplication(ownerId, applicationId) {
+  return LeagueOwnerDomain.approveLeagueApplication(ownerId, applicationId);
+}
+
+static rejectLeagueApplication(ownerId, applicationId) {
+  return LeagueOwnerDomain.rejectLeagueApplication(ownerId, applicationId);
+}
+
+/* ====================
+   TOURNAMENT APPLICATIONS
+==================== */
+static getTournamentApplications(ownerId, tournamentId, status) {
+  return LeagueOwnerDomain.getTournamentApplications(ownerId, tournamentId, status);
+}
+
+static approveTournamentApplication(ownerId, applicationId) {
+  return LeagueOwnerDomain.approveTournamentApplication(ownerId, applicationId);
+}
+
+static rejectTournamentApplication(ownerId, applicationId) {
+  return LeagueOwnerDomain.rejectTournamentApplication(ownerId, applicationId);
+}
 }

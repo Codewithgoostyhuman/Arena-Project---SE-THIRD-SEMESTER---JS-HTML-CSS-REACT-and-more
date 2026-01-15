@@ -1,4 +1,4 @@
-import Tournament from '../schemas/TournamentSchema.js'
+import TournamentModel from '../schemas/TournamentSchema.js'
 import League from '../schemas/LeagueSchema.js';
 
 export default class Tournament {
@@ -7,7 +7,7 @@ export default class Tournament {
      CREATE TOURNAMENT
   ================================= */
   static async createTournament(data) {
-    const tournament = new Tournament(data);
+    const tournament = new TournamentModel(data);
     await tournament.save();
     return tournament;
   }
@@ -16,7 +16,7 @@ export default class Tournament {
      GET TOURNAMENT BY ID
   ================================= */
   static async getTournamentById(tournamentId) {
-    const tournament = await Tournament.findById(tournamentId)
+    const tournament = await TournamentModel.findById(tournamentId)
       .populate('league', 'name game')
       .populate({ path: 'league', populate: { path: 'game', select: 'name type' } })
       .populate('players', 'name email stats')
@@ -31,7 +31,7 @@ export default class Tournament {
      UPDATE TOURNAMENT
   ================================= */
   static async updateTournament(tournamentId, data) {
-    const tournament = await Tournament.findByIdAndUpdate(tournamentId, data, { new: true });
+    const tournament = await TournamentModel.findByIdAndUpdate(tournamentId, data, { new: true });
     if (!tournament) throw new Error("Tournament not found");
     return tournament;
   }
@@ -40,7 +40,7 @@ export default class Tournament {
      DELETE TOURNAMENT
   ================================= */
   static async deleteTournament(tournamentId) {
-    const tournament = await Tournament.findByIdAndDelete(tournamentId);
+    const tournament = await TournamentModel.findByIdAndDelete(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
     return tournament;
   }
@@ -49,7 +49,7 @@ export default class Tournament {
      PLAYER APPLICATION
   ================================= */
   static async apply(playerId, tournamentId) {
-    const tournament = await Tournament.findById(tournamentId).populate('league');
+    const tournament = await TournamentModel.findById(tournamentId).populate('league');
     if (!tournament) throw new Error("Tournament not found");
     if (tournament.status !== "open_for_applications") throw new Error("Tournament not open");
 
@@ -69,7 +69,7 @@ export default class Tournament {
      APPROVE / REJECT APPLICATION
   ================================= */
   static async updateApplicationStatus(tournamentId, applicationId, status) {
-    const tournament = await Tournament.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
 
     const app = tournament.applications.id(applicationId);
@@ -89,7 +89,7 @@ export default class Tournament {
      RECORD MATCH RESULT
   ================================= */
   static async recordMatchResult(tournamentId, matchId, winnerId, isDraw = false) {
-    const tournament = await Tournament.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
 
     const match = tournament.matches.id(matchId);
@@ -123,7 +123,7 @@ export default class Tournament {
      ADD EXCLUSIVE SPONSOR
   ================================= */
   static async addExclusiveSponsor(tournamentId, advertiserId) {
-    const tournament = await Tournament.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
     tournament.exclusiveSponsor = advertiserId;
     tournament.status = "seeking_sponsors";
@@ -135,7 +135,7 @@ export default class Tournament {
      ADD ADVERTISEMENT
   ================================= */
   static async addAdvertisement(tournamentId, adId) {
-    const tournament = await Tournament.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
     tournament.advertisements.push(adId);
     await tournament.save();
@@ -146,7 +146,7 @@ export default class Tournament {
      NOTIFY INTEREST GROUPS
   ================================= */
   static async notifyGroups(tournamentId, groupIds) {
-    const tournament = await Tournament.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) throw new Error("Tournament not found");
     tournament.notifiedGroups.push(...groupIds);
     await tournament.save();
@@ -167,7 +167,7 @@ export default class Tournament {
      GET ALL PLAYERS
   ================================= */
   static async getPlayers(tournamentId) {
-    const tournament = await Tournament.findById(tournamentId)
+    const tournament = await TournamentModel.findById(tournamentId)
       .populate('players', 'name email stats');
     if (!tournament) throw new Error("Tournament not found");
     return tournament.players;
@@ -211,5 +211,19 @@ export default class Tournament {
     return tournament;
   }
 
-
+  static async getOwnerTournaments(userId){
+    const leagues = await League.find({owner:userId}).select('_id');
+    if(!leagues || leagues.length === 0){
+      return [];
+    }
+    const leagueIds = leagues.map(l=>l._id);
+    //get all tournaments
+    const tournaments = await TournamentModel.find({
+      league:{$in:leagueIds}
+    }).populate('league','name game')
+    .populate('players',"username avatar")
+    .populate('matches')
+    .sort({createdAt:-1});
+    return tournaments;
+  }
 }

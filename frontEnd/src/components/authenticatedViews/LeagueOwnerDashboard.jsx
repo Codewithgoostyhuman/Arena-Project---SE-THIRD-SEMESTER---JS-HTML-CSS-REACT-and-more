@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Trophy } from 'lucide-react';
 import StatsCard from '../reuseableComponents/StatsCard';
+//ths component is not being used currently
+
+
+
 
 export default function LeagueOwnerDashboard() {
     const [stats, setStats] = useState({
@@ -17,7 +21,7 @@ export default function LeagueOwnerDashboard() {
     const fetchDashboardStats = async () => {
         try {
             // Fetch leagues
-            const leaguesResponse = await fetch('http://localhost:5000/api/leagues', {
+            const leaguesResponse = await fetch('http://localhost:5000/api/leagues/my', {
                 credentials: 'include'
             });
             const leagues = await leaguesResponse.json();

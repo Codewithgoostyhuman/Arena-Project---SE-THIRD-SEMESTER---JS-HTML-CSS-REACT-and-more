@@ -204,7 +204,45 @@ export default function DashboardView() {
             </div>
         );
     }
+const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
+        leaguesCount: 0,
+        tournamentsCount: 0,
+        playersCount: 0,
+        loading: true
+    });
 
+    useEffect(() => {
+        fetchLeagueOwnerDashboardStats();
+    }, []);
+
+    const fetchLeagueOwnerDashboardStats = async () => {
+        try {
+            // Fetch leagues
+            const leaguesResponse = await fetch('http://localhost:5000/api/leagues/my', {
+                credentials: 'include'
+            });
+            const leagues = await leaguesResponse.json();
+
+            // Calculate stats
+            const leaguesCount = leagues.length;
+            const tournamentsCount = leagues.reduce((sum, league) => 
+                sum + (league.tournaments?.length || 0), 0
+            );
+            const playersCount = leagues.reduce((sum, league) => 
+                sum + (league.players?.length || 0), 0
+            );
+
+            setLeagueOwnerStats({
+                leaguesCount,
+                tournamentsCount,
+                playersCount,
+                loading: false  
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+            setStats(prev => ({ ...prev, loading: false }));
+        }
+    };
     // League Owner Dashboard
     if (currentUser?.role === 'leagueOwner') {
         return (
@@ -217,14 +255,19 @@ export default function DashboardView() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatsCard
                         title="My Leagues"
-                        value={0}
+                        value={LeagueOwnerstats.leaguesCount}
                         icon={<Shield className="h-8 w-8 text-indigo-600" />}
                         loading={false}
                     />
                     <StatsCard
+                    title={"My Tournaments"}
+                    value={LeagueOwnerstats.tournamentsCount}
+                    icon={<Shield className='h-8 w-8 text-indigo-600'/>}
+                    loading={false}/>
+                    {/* <StatsCard
                         title="Total Players"
                         value={0}
-                        icon={<Users className="h-8 w-8 text-green-600" />}
+                        icon={<Users className="h-8 w-8 text-blue-600" />}
                         loading={false}
                     />
                     <StatsCard
@@ -232,7 +275,7 @@ export default function DashboardView() {
                         value={0}
                         icon={<Gamepad2 className="h-8 w-8 text-blue-600" />}
                         loading={false}
-                    />
+                    /> */}
                 </div>
             </div>
         );

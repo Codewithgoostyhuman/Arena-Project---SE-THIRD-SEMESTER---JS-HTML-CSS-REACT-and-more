@@ -2,7 +2,7 @@
 import express from "express";
 import * as playerController from "../controllers/playerController.js";
 import * as playerMatchController from "../controllers/playerMatchController.js";
-import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
 
 const router = express.Router();
 

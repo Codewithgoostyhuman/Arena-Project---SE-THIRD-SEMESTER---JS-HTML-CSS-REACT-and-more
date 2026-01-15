@@ -1,4 +1,4 @@
-import * as tournamentService from "../services/tournamentService.js";
+import tournamentService from "../services/tournamentService.js";
 
 export const createTournament = async (req, res) => {
   try {
@@ -17,7 +17,7 @@ export const createTournament = async (req, res) => {
 
 export const updateTournament = async (req, res) => {
   try {
-    const tournament = await tournamentService.updateTournament(req.params.tournamentId, req.body);
+    const tournament = await tournamentService.update(req.params.tournamentId, req.body);
     res.json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -26,7 +26,7 @@ export const updateTournament = async (req, res) => {
 
 export const deleteTournament = async (req, res) => {
   try {
-    await tournamentService.deleteTournament(req.params.tournamentId);
+    await tournamentService.delete(req.params.tournamentId);
     res.json({ message: "Tournament deleted" });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -207,3 +207,21 @@ export const getActiveLeagues = async (req, res, next) => {
     next(error);
   }
 };
+
+//get owners tournaments
+export const getMyTournaments = async (req,res)=>{
+  console.log(req.user)
+  try{
+    const userId = req.user._id;
+    if(!userId){
+      return res.status(401).json({message:"User not authenticated"});
+    }
+    const tournaments = await tournamentService.getOwnerTournaments(userId);
+    return res.status(200).json(tournaments);
+  }catch(err){
+    console.error("Error in get my tournaments controller: ",err);
+    res.status(400).json({
+      message:err.message||"Failed to fetch tournaments"
+    });
+  }
+}
