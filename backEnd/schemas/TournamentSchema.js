@@ -17,32 +17,20 @@ const TournamentSchema = new mongoose.Schema({
 
   maxPlayers: Number,
 
-  // ✅ NEW: Application dates (when players can apply)
+
   applicationStartDate: Date,
   applicationEndDate: Date,
   
-  // ✅ RENAMED: Play dates (when tournament actually runs)
+
   playStartDate: Date,
   playEndDate: Date,
 
   players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   
-  // ✅ NEW: Player applications (embedded like in League)
+
   applications: [{
-    player: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
-    },
-    appliedAt: {
-      type: Date,
-      default: Date.now
-    },
-    reviewedAt: Date
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Application'
   }],
 
   matches: [
@@ -55,7 +43,7 @@ const TournamentSchema = new mongoose.Schema({
 
   winners: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
-  // ✅ NEW: Sponsorship fields
+
   exclusiveSponsor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Advertiser"
@@ -78,13 +66,13 @@ const TournamentSchema = new mongoose.Schema({
     respondedAt: Date
   }],
   
-  // ✅ NEW: Advertisements displayed during tournament
+ 
   advertisements: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Advertisement"
   }],
   
-  // ✅ NEW: Notified interest groups
+
   notifiedGroups: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "InterestGroup"

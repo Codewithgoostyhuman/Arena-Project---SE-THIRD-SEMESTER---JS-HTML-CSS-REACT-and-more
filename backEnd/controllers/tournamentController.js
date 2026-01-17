@@ -1,8 +1,11 @@
 import tournamentService from "../services/tournamentService.js";
+import League from "../schemas/LeagueSchema.js";
 
+/* ================================
+   LEAGUE OWNER / OPERATOR ROUTES
+================================= */
 export const createTournament = async (req, res) => {
   try {
-    // Pass userId from authenticated user to service
     const userId = req.user._id;
     const tournament = await tournamentService.createTournament(
       req.body, 
@@ -42,35 +45,6 @@ export const completeTournament = async (req, res) => {
   }
 };
 
-// Player Routes
-export const applyToTournament = async (req, res) => {
-  try {
-    const tournament = await tournamentService.applyToTournament(req.user._id, req.params.tournamentId);
-    res.json({ message: "Applied successfully", tournament });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-export const getAvailableTournaments = async (req, res) => {
-  try {
-    const tournaments = await tournamentService.getAvailableTournaments(req.user._id);
-    res.json(tournaments);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-export const getPlayerTournaments = async (req, res) => {
-  try {
-    const tournaments = await tournamentService.getPlayerTournaments(req.user._id);
-    res.json(tournaments);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-// Owner/Operator Routes
 export const updateApplicationStatus = async (req, res) => {
   try {
     const status = req.params.action === "approve" ? "approved" : "rejected";
@@ -102,7 +76,10 @@ export const recordMatchResult = async (req, res) => {
 
 export const addExclusiveSponsor = async (req, res) => {
   try {
-    const tournament = await tournamentService.addExclusiveSponsor(req.params.tournamentId, req.body.advertiserId);
+    const tournament = await tournamentService.selectExclusiveSponsor(
+      req.params.tournamentId, 
+      req.body.advertiserId
+    );
     res.json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -111,7 +88,10 @@ export const addExclusiveSponsor = async (req, res) => {
 
 export const addAdvertisement = async (req, res) => {
   try {
-    const tournament = await tournamentService.addAdvertisement(req.params.tournamentId, req.body.adId);
+    const tournament = await tournamentService.addAdvertisement(
+      req.params.tournamentId, 
+      req.body.adId
+    );
     res.json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -120,13 +100,114 @@ export const addAdvertisement = async (req, res) => {
 
 export const notifyGroups = async (req, res) => {
   try {
-    const tournament = await tournamentService.notifyGroups(req.params.tournamentId, req.body.groupIds);
+    const tournament = await tournamentService.notifyInterestGroups(
+      req.params.tournamentId, 
+      req.body.groupIds
+    );
     res.json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
+export const kickoffTournament = async (req, res) => {
+  try {
+    const result = await tournamentService.kickoffTournamentAutomatically(
+      req.params.tournamentId
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getMyTournaments = async (req, res) => {
+  console.log(req.user);
+  try {
+    const userId = req.user._id;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    const tournaments = await tournamentService.getOwnerTournaments(userId);
+    return res.status(200).json(tournaments);
+  } catch (err) {
+    console.error("Error in get my tournaments controller: ", err);
+    res.status(400).json({
+      message: err.message || "Failed to fetch tournaments"
+    });
+  }
+};
+
+/* ================================
+   PLAYER ROUTES
+================================= */
+export const applyToTournament = async (req, res) => {
+  try {
+    const tournament = await tournamentService.applyToTournament(
+      req.user._id, 
+      req.params.tournamentId
+    );
+    res.json({ message: "Applied successfully", tournament });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const cancelTournamentApplication = async (req, res) => {
+  try {
+    const tournament = await tournamentService.cancelTournamentApplication(
+      req.user._id,
+      req.params.tournamentId,
+      req.params.applicationId
+    );
+    res.json({ message: "Application cancelled successfully", tournament });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const leaveTournament = async (req, res) => {
+  try {
+    const tournament = await tournamentService.leaveTournament(
+      req.user._id,
+      req.params.tournamentId
+    );
+    res.json({ message: "Left tournament successfully", tournament });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getPlayerApplications = async (req, res) => {
+  try {
+    const applications = await tournamentService.getPlayerApplications(req.user._id);
+    res.json(applications);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getAvailableTournaments = async (req, res) => {
+  try {
+    const tournaments = await tournamentService.getAvailableTournaments(req.user._id);
+    res.json(tournaments);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getPlayerTournaments = async (req, res) => {
+  try {
+    const tournaments = await tournamentService.getPlayerTournaments(req.user._id);
+    res.json(tournaments);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* ================================
+   SHARED/PUBLIC ROUTES
+================================= */
 export const getTournamentWinners = async (req, res) => {
   try {
     const winners = await tournamentService.getTournamentWinners(req.params.tournamentId);
@@ -144,39 +225,7 @@ export const getTournamentPlayers = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-export const kickoffTournament = async (req, res) => {
-  try {
-    const result = await tournamentService.kickoffTournamentAutomatically(
-      req.params.tournamentId
-    );
-    res.json(result);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-// Get live tournaments
-export const getLiveTournaments = async (req, res, next) => {
-  try {
-    const tournaments = await tournamentService.getLiveTournaments();
-    res.json(tournaments);
-  } catch (error) {
-    console.error('Error fetching live tournaments:', error);
-    next(error);
-  }
-};
 
-// Get upcoming tournaments
-export const getUpcomingTournaments = async (req, res, next) => {
-  try {
-    const tournaments = await tournamentService.getUpcomingTournaments();
-    res.json(tournaments);
-  } catch (error) {
-    console.error('Error fetching upcoming tournaments:', error);
-    next(error);
-  }
-};
-
-// Get tournament by ID
 export const getTournamentById = async (req, res, next) => {
   try {
     const { tournamentId } = req.params;
@@ -192,9 +241,50 @@ export const getTournamentById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getTournamentBrackets = async (req, res) => {
+  try {
+    const brackets = await tournamentService.getTournamentBrackets(req.params.tournamentId);
+    res.json(brackets);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getTournamentLeaderboard = async (req, res) => {
+  try {
+    const leaderboard = await tournamentService.getTournamentLeaderboard(req.params.tournamentId);
+    res.json(leaderboard);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* ================================
+   ADDITIONAL ROUTES
+================================= */
+export const getLiveTournaments = async (req, res, next) => {
+  try {
+    const tournaments = await tournamentService.getLiveTournaments();
+    res.json(tournaments);
+  } catch (error) {
+    console.error('Error fetching live tournaments:', error);
+    next(error);
+  }
+};
+
+export const getUpcomingTournaments = async (req, res, next) => {
+  try {
+    const tournaments = await tournamentService.getUpcomingTournaments();
+    res.json(tournaments);
+  } catch (error) {
+    console.error('Error fetching upcoming tournaments:', error);
+    next(error);
+  }
+};
+
 export const getActiveLeagues = async (req, res, next) => {
   try {
-    // Get leagues owned by the current user
     const leagues = await League.find({ owner: req.user._id })
       .populate('game', 'name')
       .populate('ratingFormula', 'name')
@@ -207,21 +297,3 @@ export const getActiveLeagues = async (req, res, next) => {
     next(error);
   }
 };
-
-//get owners tournaments
-export const getMyTournaments = async (req,res)=>{
-  console.log(req.user)
-  try{
-    const userId = req.user._id;
-    if(!userId){
-      return res.status(401).json({message:"User not authenticated"});
-    }
-    const tournaments = await tournamentService.getOwnerTournaments(userId);
-    return res.status(200).json(tournaments);
-  }catch(err){
-    console.error("Error in get my tournaments controller: ",err);
-    res.status(400).json({
-      message:err.message||"Failed to fetch tournaments"
-    });
-  }
-}

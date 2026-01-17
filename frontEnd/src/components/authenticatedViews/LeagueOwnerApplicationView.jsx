@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, Users, Trophy } from 'lucide-react';
+import { apiService } from '../../APIs/apiService';
 
 export default function ApplicationsView() {
     const [activeTab, setActiveTab] = useState('league'); // 'league' or 'tournament'
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchApplications();
@@ -14,21 +16,23 @@ export default function ApplicationsView() {
     const fetchApplications = async () => {
         try {
             setLoading(true);
-            const statusParam = filter !== 'all' ? `?status=${filter}` : '';
-            const endpoint = activeTab === 'league' 
-                ? `/league/applications${statusParam}`
-                : `/tournament/applications${statusParam}`;
-
-            const response = await fetch(`http://localhost:5000/api/league-owners${endpoint}`, {
-                credentials: 'include',
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch applications');
+            setError(null);
             
-            const data = await response.json();
-            setApplications(data);
+            const statusParam = filter !== 'all' ? filter : null;
+            
+            let data;
+            if (activeTab === 'league') {
+                data = await apiService.leagueOwner.getLeagueApplications(null, statusParam);
+            } else {
+                data = await apiService.leagueOwner.getTournamentApplications(null, statusParam);
+            }
+            
+            console.log(`${activeTab} applications:`, data);
+            setApplications(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching applications:', error);
+            setError(error.message);
+            setApplications([]);
         } finally {
             setLoading(false);
         }
@@ -36,20 +40,12 @@ export default function ApplicationsView() {
 
     const handleApprove = async (applicationId) => {
         try {
-            const endpoint = activeTab === 'league'
-                ? `/league/application/${applicationId}/approve`
-                : `/tournament/application/${applicationId}/approve`;
-
-            const response = await fetch(`http://localhost:5000/api/league-owners${endpoint}`, {
-                method: 'PATCH',
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message);
+            if (activeTab === 'league') {
+                await apiService.leagueOwner.approveLeagueApplication(applicationId);
+            } else {
+                await apiService.leagueOwner.approveTournamentApplication(applicationId);
             }
-
+            
             alert('Application approved successfully!');
             fetchApplications();
         } catch (error) {
@@ -61,20 +57,12 @@ export default function ApplicationsView() {
         if (!confirm('Are you sure you want to reject this application?')) return;
 
         try {
-            const endpoint = activeTab === 'league'
-                ? `/league/application/${applicationId}/reject`
-                : `/tournament/application/${applicationId}/reject`;
-
-            const response = await fetch(`http://localhost:5000/api/league-owners${endpoint}`, {
-                method: 'PATCH',
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message);
+            if (activeTab === 'league') {
+                await apiService.leagueOwner.rejectLeagueApplication(applicationId);
+            } else {
+                await apiService.leagueOwner.rejectTournamentApplication(applicationId);
             }
-
+            
             alert('Application rejected');
             fetchApplications();
         } catch (error) {
@@ -89,7 +77,7 @@ export default function ApplicationsView() {
             rejected: 'bg-red-100 text-red-800'
         };
         return (
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
                 {status.toUpperCase()}
             </span>
         );
@@ -108,6 +96,19 @@ export default function ApplicationsView() {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h1 className="text-4xl font-bold mb-8">Manage Applications</h1>
+
+            {/* Error Message */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <p className="text-red-800">{error}</p>
+                    <button 
+                        onClick={fetchApplications}
+                        className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
 
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow-md mb-6">
@@ -174,53 +175,90 @@ export default function ApplicationsView() {
             ) : (
                 <div className="bg-white rounded-lg shadow-md divide-y">
                     {applications.map((app) => (
-                        <div key={app._id} className="p-6 hover:bg-gray-50 transition">
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-lg font-semibold text-gray-900">
-                                            {app.user?.name || 'Unknown Player'}
-                                        </h3>
-                                        {getStatusBadge(app.status)}
-                                    </div>
-                                    
-                                    <p className="text-sm text-gray-600 mb-1">
-                                        Email: {app.user?.email || 'N/A'}
-                                    </p>
-                                    
-                                    <p className="text-sm text-gray-600 mb-1">
-                                        {activeTab === 'league' ? 'League' : 'Tournament'}: {' '}
-                                        <span className="font-medium">{app.target?.name || 'N/A'}</span>
-                                    </p>
-                                    
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        Applied: {formatDate(app.createdAt)}
-                                    </p>
-                                </div>
-
-                                {app.status === 'pending' && (
-                                    <div className="flex gap-2 ml-4">
-                                        <button
-                                            onClick={() => handleApprove(app._id)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                                        >
-                                            <CheckCircle className="h-4 w-4" />
-                                            Approve
-                                        </button>
-                                        <button
-                                            onClick={() => handleReject(app._id)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                        >
-                                            <XCircle className="h-4 w-4" />
-                                            Reject
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <ApplicationCard
+                            key={app._id}
+                            application={app}
+                            activeTab={activeTab}
+                            onApprove={handleApprove}
+                            onReject={handleReject}
+                            formatDate={formatDate}
+                            getStatusBadge={getStatusBadge}
+                        />
                     ))}
                 </div>
             )}
+        </div>
+    );
+}
+
+function ApplicationCard({ application, activeTab, onApprove, onReject, formatDate, getStatusBadge }) {
+    // Handle Application schema structure (separate document with references)
+    const player = application.user; // Application schema uses 'user' field
+    const target = application.target; // Reference to League or Tournament
+    
+    const playerName = player?.name || player?.username || 'Unknown Player';
+    const playerEmail = player?.email || 'N/A';
+    const targetName = target?.name || 'N/A';
+    const appliedDate = application.createdAt; // Application schema uses createdAt
+
+    return (
+        <div className="p-6 hover:bg-gray-50 transition">
+            <div className="flex items-start justify-between">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            {playerName}
+                        </h3>
+                        {getStatusBadge(application.status)}
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 mb-1">
+                        Email: {playerEmail}
+                    </p>
+                    
+                    <p className="text-sm text-gray-600 mb-1">
+                        {activeTab === 'league' ? 'League' : 'Tournament'}: {' '}
+                        <span className="font-medium">{targetName}</span>
+                    </p>
+                    
+                    {target?.game && (
+                        <p className="text-sm text-gray-600 mb-1">
+                            Game: <span className="font-medium">{target.game.name || target.game}</span>
+                        </p>
+                    )}
+                    
+                    {appliedDate && (
+                        <p className="text-xs text-gray-500 mt-2">
+                            Applied: {formatDate(appliedDate)}
+                        </p>
+                    )}
+                    
+                    {application.updatedAt && application.status !== 'pending' && (
+                        <p className="text-xs text-gray-500">
+                            Reviewed: {formatDate(application.updatedAt)}
+                        </p>
+                    )}
+                </div>
+
+                {application.status === 'pending' && (
+                    <div className="flex gap-2 ml-4">
+                        <button
+                            onClick={() => onApprove(application._id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                        </button>
+                        <button
+                            onClick={() => onReject(application._id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

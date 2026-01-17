@@ -3,11 +3,11 @@ import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
 import * as tournamentController from "../controllers/tournamentController.js";
 
 const router = express.Router();
-
-
 /* =======================
    PLAYER ROUTES
 ======================= */
+
+// Apply to tournament
 router.post(
   "/:tournamentId/apply",
   authenticate,
@@ -15,6 +15,23 @@ router.post(
   tournamentController.applyToTournament
 );
 
+// Cancel tournament application (NEW)
+router.delete(
+  "/:tournamentId/application/:applicationId",
+  authenticate,
+  authorizeRoles(Roles.PLAYER),
+  tournamentController.cancelTournamentApplication
+);
+
+// Leave tournament (NEW)
+router.delete(
+  "/:tournamentId/leave",
+  authenticate,
+  authorizeRoles(Roles.PLAYER),
+  tournamentController.leaveTournament
+);
+
+// Get available tournaments for player
 router.get(
   "/available",
   authenticate,
@@ -22,6 +39,7 @@ router.get(
   tournamentController.getAvailableTournaments
 );
 
+// Get player's tournaments
 router.get(
   "/my-tournaments",
   authenticate,
@@ -29,16 +47,35 @@ router.get(
   tournamentController.getPlayerTournaments
 );
 
+// Get player's tournament applications (NEW)
+router.get(
+  "/my-applications",
+  authenticate,
+  authorizeRoles(Roles.PLAYER),
+  tournamentController.getPlayerApplications
+);
+
 /* =======================
    LEAGUE OWNER / OPERATOR ROUTES
 ======================= */
+
+// Create tournament
 router.post(
   "/",
   authenticate,
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
   tournamentController.createTournament
 );
-router.get('/my',authenticate,authorizeRoles(Roles.LEAGUE_OWNER,Roles.OPERATOR),tournamentController.getMyTournaments)
+
+// Get owner's tournaments
+router.get(
+  "/my",
+  authenticate,
+  authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
+  tournamentController.getMyTournaments
+);
+
+// Update tournament
 router.put(
   "/:tournamentId",
   authenticate,
@@ -46,6 +83,7 @@ router.put(
   tournamentController.updateTournament
 );
 
+// Delete tournament
 router.delete(
   "/:tournamentId",
   authenticate,
@@ -53,6 +91,7 @@ router.delete(
   tournamentController.deleteTournament
 );
 
+// Complete tournament
 router.post(
   "/:tournamentId/complete",
   authenticate,
@@ -60,6 +99,7 @@ router.post(
   tournamentController.completeTournament
 );
 
+// Approve/Reject application
 router.post(
   "/:tournamentId/application/:applicationId/:action",
   authenticate,
@@ -67,6 +107,7 @@ router.post(
   tournamentController.updateApplicationStatus
 );
 
+// Record match result
 router.post(
   "/:tournamentId/match/:matchId/result",
   authenticate,
@@ -74,6 +115,7 @@ router.post(
   tournamentController.recordMatchResult
 );
 
+// Add exclusive sponsor
 router.post(
   "/:tournamentId/sponsorship/exclusive",
   authenticate,
@@ -81,6 +123,7 @@ router.post(
   tournamentController.addExclusiveSponsor
 );
 
+// Add advertisement
 router.post(
   "/:tournamentId/advertisement",
   authenticate,
@@ -88,6 +131,7 @@ router.post(
   tournamentController.addAdvertisement
 );
 
+// Notify groups
 router.post(
   "/:tournamentId/notify-groups",
   authenticate,
@@ -95,17 +139,7 @@ router.post(
   tournamentController.notifyGroups
 );
 
-router.get(
-  "/:tournamentId/winners",
-  authenticate,
-  tournamentController.getTournamentWinners
-);
-
-router.get(
-  "/:tournamentId/players",
-  authenticate,
-  tournamentController.getTournamentPlayers
-);
+// Kickoff tournament
 router.post(
   "/:tournamentId/kickoff",
   authenticate,
@@ -113,5 +147,44 @@ router.post(
   tournamentController.kickoffTournament
 );
 
+/* =======================
+   SHARED/PUBLIC ROUTES
+   (Accessible to authenticated users)
+======================= */
+
+// Get tournament winners
+router.get(
+  "/:tournamentId/winners",
+  authenticate,
+  tournamentController.getTournamentWinners
+);
+
+// Get tournament players
+router.get(
+  "/:tournamentId/players",
+  authenticate,
+  tournamentController.getTournamentPlayers
+);
+
+// Get tournament by ID (NEW)
+router.get(
+  "/:tournamentId",
+  authenticate,
+  tournamentController.getTournamentById
+);
+
+// Get tournament brackets (NEW)
+router.get(
+  "/:tournamentId/brackets",
+  authenticate,
+  tournamentController.getTournamentBrackets
+);
+
+// Get tournament leaderboard (NEW)
+router.get(
+  "/:tournamentId/leaderboard",
+  authenticate,
+  tournamentController.getTournamentLeaderboard
+);
 
 export default router;

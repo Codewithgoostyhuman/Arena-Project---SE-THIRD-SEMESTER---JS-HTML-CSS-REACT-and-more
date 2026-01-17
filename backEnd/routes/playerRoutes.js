@@ -33,6 +33,12 @@ router.get(
   authorizeRoles(Roles.PLAYER),
   playerController.getMyLeagues
 );
+router.get(
+  "/my-tournaments",
+  authenticate,
+  authorizeRoles(Roles.PLAYER),
+  playerController.getMyTournaments
+);
 
 /**
  * @route   POST /api/players/league/:leagueId/leave
@@ -83,12 +89,7 @@ router.delete(
  * @desc    Get player's tournaments
  * @access  Private (Player only)
  */
-router.get(
-  "/my-tournaments",
-  authenticate,
-  authorizeRoles(Roles.PLAYER),
-  playerController.getMyTournaments
-);
+
 
 /**
  * @route   GET /api/players/active-tournaments

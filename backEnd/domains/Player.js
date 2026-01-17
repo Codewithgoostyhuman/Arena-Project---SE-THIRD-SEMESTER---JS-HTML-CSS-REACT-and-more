@@ -11,6 +11,7 @@ export default class Player {
   ================================= */
   static async applyToLeague(playerId, leagueId) {
   const player = await User.findById(playerId);
+  console.log('✅ Player found:', player);
   if (!player || player.role !== "player") {
     throw new Error("Only players can apply to leagues");
   }
@@ -42,13 +43,14 @@ export default class Player {
   }
 
   // STEP 1: Create and save Application document
+  console.log('🔍 Creating application...');
   const application = await Application.create({
     user: playerId,
     target: leagueId,
     targetType: 'League',
     status: 'pending'
   });
-
+ console.log('✅ Application created:', application);
   // STEP 2: Add application ID reference to league's applications array
   league.applications.push(application._id);
   await league.save();
@@ -125,8 +127,8 @@ static async cancelApplication(playerId, leagueId, applicationId) {
   }
 
   // STEP 1: Delete from Application collection
-  await Application.findByIdAndDelete(applicationId);
-  console.log("I have deleted your application from dbs")
+  const deleted = await Application.findByIdAndDelete(applicationId);
+console.log("Deleted application:", deleted);
 
   // STEP 2: Remove reference from league's applications array
   const league = await League.findById(leagueId);
@@ -144,6 +146,7 @@ static async cancelApplication(playerId, leagueId, applicationId) {
   ================================= */
   static async applyToTournament(playerId, tournamentId) {
     const player = await User.findById(playerId);
+    console.log('✅ Player found:', player);
     if (!player || player.role !== "player") {
       throw new Error("User is not a player");
     }
@@ -188,13 +191,14 @@ static async cancelApplication(playerId, leagueId, applicationId) {
     // Based on your LeagueOwner code, it looks like tournaments use applications too
     
     // If tournament requires approval:
+    console.log('🔍 Creating application...');
     const application = await Application.create({
       user: playerId,
       target: tournamentId,
       targetType: 'Tournament',
       status: 'pending'
     });
-
+console.log('✅ Application created:', application);
     return {
       message: "Application submitted successfully",
       applicationId: application._id,

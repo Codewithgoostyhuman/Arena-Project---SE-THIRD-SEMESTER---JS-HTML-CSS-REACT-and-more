@@ -1,39 +1,36 @@
-
-
 export const API_BASE = 'http://localhost:5000/api';
 
 export const apiService = {
     async request(endpoint, options = {}) {
-    try {
-        const response = await fetch(`${API_BASE}${endpoint}`, {
-            ...options,
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('API Error:', {
-                endpoint,
-                status: response.status,
-                message: data.message,
-                errors: data.errors, // validation errors
-                data: data
+        try {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                },
             });
-            throw new Error(data.message || 'Request failed');
-        }
 
-        return data;
-    } catch (error) {
-        console.error('Request failed:', error);
-        throw error;
-    }
-}
-,
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('API Error:', {
+                    endpoint,
+                    status: response.status,
+                    message: data.message,
+                    errors: data.errors,
+                    data: data
+                });
+                throw new Error(data.message || 'Request failed');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Request failed:', error);
+            throw error;
+        }
+    },
 
     auth: {
         login: (email, password) =>
@@ -50,58 +47,71 @@ export const apiService = {
         getMe: () => apiService.request('/auth/me'),
     },
 
-     // ==================== PLAYER ENDPOINTS ====================
-  players : {
-    // Stats
-    getStats: () => apiService.request('/players/stats'),
-    
-    // Leagues
-    getMyLeagues: () => apiService.request('/players/my-leagues'),
-    applyToLeague: (leagueId) => 
-      apiService.request(`/players/league/${leagueId}/apply`, { method: 'POST' }),
-    leaveLeague: (leagueId) => 
-      apiService.request(`/players/league/${leagueId}/leave`, { method: 'POST' }),
-    
-    // Applications
-    getMyApplications: () => apiService.request('/players/my-applications'),
-    cancelApplication: (leagueId, applicationId) => 
-      apiService.request(`/players/league/${leagueId}/application/${applicationId}`, { 
-        method: 'DELETE' 
-      }),
-    
-    // Tournaments
-    getMyTournaments: () => apiService.request('/players/my-tournaments'),
-    getActiveTournaments: () => apiService.request('/players/active-tournaments'),
-    getAvailableTournaments: () => apiService.request('/players/available-tournaments'),
-    applyToTournament: (tournamentId) => 
-      apiService.request(`/players/tournament/${tournamentId}/apply`, { method: 'POST' }),
-    dropOutOfTournament: (tournamentId) => 
-      apiService.request(`/players/tournament/${tournamentId}/drop-out`, { method: 'POST' }),
-    forfeitTournament: (tournamentId) => 
-      apiService.request(`/players/tournament/${tournamentId}/forfeit`, { method: 'POST' }),
-    canDropOut: (tournamentId) => 
-      apiService.request(`/players/tournament/${tournamentId}/can-drop-out`),
-    
-    // Matches
-    getMyMatches: () => apiService.request('/players/my-matches'),
-    getUpcomingMatches: () => apiService.request('/players/my-matches/upcoming'),
-    getLiveMatches: () => apiService.request('/players/my-matches/live'),
-    getMatchSchedule: () => apiService.request('/players/match-schedule'),
-    getMatchHistory: () => apiService.request('/players/match-history'),
-    
-    // Match actions
-    joinMatch: (matchId) => 
-      apiService.request(`/players/matches/${matchId}/join`, { method: 'POST' }),
-    makeMove: (matchId, moveData) => 
-      apiService.request(`/players/matches/${matchId}/move`, { 
-        method: 'POST',
-        body: JSON.stringify(moveData)
-      }),
-    getMatchState: (matchId) => 
-      apiService.request(`/players/matches/${matchId}/state`),
-    forfeitMatch: (matchId) => 
-      apiService.request(`/players/matches/${matchId}/forfeit`, { method: 'POST' }),
-  },
+    // ==================== PLAYER ENDPOINTS ====================
+    players: {
+        // Stats
+        getStats: () => apiService.request('/players/stats'),
+        
+        // Leagues
+        getMyLeagues: () => apiService.request('/players/my-leagues'),
+        applyToLeague: (leagueId) => 
+            apiService.request(`/players/league/${leagueId}/apply`, { method: 'POST' }),
+        leaveLeague: (leagueId) => 
+            apiService.request(`/players/league/${leagueId}/leave`, { method: 'POST' }),
+        
+        // Applications
+        getMyApplications: () => apiService.request('/players/my-applications'),
+        cancelApplication: (leagueId, applicationId) => 
+            apiService.request(`/players/league/${leagueId}/application/${applicationId}`, { 
+                method: 'DELETE' 
+            }),
+        
+        // Tournaments - UPDATED
+        getMyTournaments: () => apiService.request('/tournaments/my-tournaments'),
+        getActiveTournaments: () => apiService.request('/players/active-tournaments'),
+        getAvailableTournaments: () => apiService.request('/tournaments/available'),
+        
+        applyToTournament: (tournamentId) =>
+            apiService.request(`/tournaments/${tournamentId}/apply`, { method: 'POST' }),
+        
+        cancelTournamentApplication: (tournamentId, applicationId) =>
+            apiService.request(`/tournaments/${tournamentId}/application/${applicationId}`, { 
+                method: 'DELETE' 
+            }),
+        
+        leaveTournament: (tournamentId) =>
+            apiService.request(`/tournaments/${tournamentId}/leave`, { 
+                method: 'DELETE' 
+            }),
+        
+        getMyTournamentApplications: () => 
+            apiService.request('/tournaments/my-applications'),
+        
+        dropOutOfTournament: (tournamentId) =>
+            apiService.request(`/players/tournament/${tournamentId}/drop-out`, { method: 'POST' }),
+        
+        forfeitTournament: (tournamentId) =>
+            apiService.request(`/players/tournament/${tournamentId}/forfeit`, { method: 'POST' }),
+        
+        // Matches
+        getMyMatches: () => apiService.request('/players/my-matches'),
+        getUpcomingMatches: () => apiService.request('/players/my-matches/upcoming'),
+        getLiveMatches: () => apiService.request('/players/my-matches/live'),
+        getMatchSchedule: () => apiService.request('/players/match-schedule'),
+        getMatchHistory: () => apiService.request('/players/match-history'),
+
+        joinMatch: (matchId) =>
+            apiService.request(`/players/matches/${matchId}/join`, { method: 'POST' }),
+        makeMove: (matchId, moveData) =>
+            apiService.request(`/players/matches/${matchId}/move`, { 
+                method: 'POST', 
+                body: JSON.stringify(moveData) 
+            }),
+        getMatchState: (matchId) => 
+            apiService.request(`/players/matches/${matchId}/state`),
+        forfeitMatch: (matchId) => 
+            apiService.request(`/players/matches/${matchId}/forfeit`, { method: 'POST' }),
+    },
 
     leagues: {
         getActive: () => apiService.request('/leagues/active'),
@@ -112,11 +122,77 @@ export const apiService = {
         }),
     },
 
+    // ==================== TOURNAMENT ENDPOINTS - UPDATED ====================
     tournaments: {
-        create: (data) => apiService.request('/tournaments', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
+        // Player routes
+        getAvailable: () => apiService.request('/tournaments/available'),
+        getPlayerTournaments: () => apiService.request('/tournaments/my-tournaments'),
+        
+        // Owner/Operator routes
+        create: (tournamentData) => 
+            apiService.request('/tournaments', { 
+                method: 'POST', 
+                body: JSON.stringify(tournamentData) 
+            }),
+        
+        getMyTournaments: () => apiService.request('/tournaments/my'),
+        
+        update: (tournamentId, tournamentData) =>
+            apiService.request(`/tournaments/${tournamentId}`, { 
+                method: 'PUT', 
+                body: JSON.stringify(tournamentData) 
+            }),
+        
+        delete: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}`, { method: 'DELETE' }),
+        
+        complete: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/complete`, { method: 'POST' }),
+        
+        updateApplicationStatus: (tournamentId, applicationId, action) =>
+            apiService.request(`/tournaments/${tournamentId}/application/${applicationId}/${action}`, { 
+                method: 'POST' 
+            }),
+        
+        recordMatchResult: (tournamentId, matchId, resultData) =>
+            apiService.request(`/tournaments/${tournamentId}/match/${matchId}/result`, { 
+                method: 'POST', 
+                body: JSON.stringify(resultData) 
+            }),
+        
+        addExclusiveSponsor: (tournamentId, sponsorData) =>
+            apiService.request(`/tournaments/${tournamentId}/sponsorship/exclusive`, { 
+                method: 'POST', 
+                body: JSON.stringify(sponsorData) 
+            }),
+        
+        addAdvertisement: (tournamentId, adData) =>
+            apiService.request(`/tournaments/${tournamentId}/advertisement`, { 
+                method: 'POST', 
+                body: JSON.stringify(adData) 
+            }),
+        
+        notifyGroups: (tournamentId) =>
+            apiService.request(`/tournaments/${tournamentId}/notify-groups`, { method: 'POST' }),
+        
+        kickoff: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/kickoff`, { method: 'POST' }),
+        
+        // Shared/Public routes - NEW
+        getById: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}`),
+        
+        getWinners: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/winners`),
+        
+        getPlayers: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/players`),
+        
+        getBrackets: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/brackets`),
+        
+        getLeaderboard: (tournamentId) => 
+            apiService.request(`/tournaments/${tournamentId}/leaderboard`),
     },
 
     public: {
@@ -127,14 +203,12 @@ export const apiService = {
     },
 
     operator: {
-        // User Management
-        // User Management - FIXED ENDPOINTS
         getAllUsers: (role, status) => {
             const params = new URLSearchParams();
             if (role) params.append('role', role);
             if (status) params.append('status', status);
             const query = params.toString() ? `?${params.toString()}` : '';
-            return apiService.request(`/operator/user${query}`); // Changed from /users to /user
+            return apiService.request(`/operator/user${query}`);
         },
         getUserById: (id) => apiService.request(`/operator/user/${id}`),
         getPendingUsers: () => apiService.request(`/operator/user/pending`),
@@ -193,72 +267,70 @@ export const apiService = {
         getSystemStatistics: () => apiService.request('/operator/statistics'),
         getDashboardStats: () => apiService.request('/operator/dashboard-stats'),
     },
+
     leagueOwner: {
-    // League Applications
-    getLeagueApplications: (leagueId = null, status = null) => {
-        const params = new URLSearchParams();
-        if (leagueId) params.append('leagueId', leagueId);
-        if (status) params.append('status', status);
-        const query = params.toString() ? `?${params.toString()}` : '';
-        return apiService.request(`/league-owner/league/applications${query}`);
+        // League Applications
+        getLeagueApplications: (leagueId = null, status = null) => {
+            const params = new URLSearchParams();
+            if (leagueId) params.append('leagueId', leagueId);
+            if (status) params.append('status', status);
+            const query = params.toString() ? `?${params.toString()}` : '';
+            return apiService.request(`/league-owners/league/applications${query}`);
+        },
+        approveLeagueApplication: (applicationId) =>
+            apiService.request(`/league-owners/league/application/${applicationId}/approve`, {
+                method: 'PATCH',
+            }),
+        rejectLeagueApplication: (applicationId) =>
+            apiService.request(`/league-owners/league/application/${applicationId}/reject`, {
+                method: 'PATCH',
+            }),
+
+        // Tournament Applications
+        getTournamentApplications: (tournamentId = null, status = null) => {
+            const params = new URLSearchParams();
+            if (tournamentId) params.append('tournamentId', tournamentId);
+            if (status) params.append('status', status);
+            const query = params.toString() ? `?${params.toString()}` : '';
+            return apiService.request(`/league-owners/tournament/applications${query}`);
+        },
+        approveTournamentApplication: (applicationId) =>
+            apiService.request(`/league-owners/tournament/application/${applicationId}/approve`, {
+                method: 'PATCH',
+            }),
+        rejectTournamentApplication: (applicationId) =>
+            apiService.request(`/league-owners/tournament/application/${applicationId}/reject`, {
+                method: 'PATCH',
+            }),
+
+        // Leagues
+        getMyLeagues: () => apiService.request('/leagues/my'),
+        createLeague: (data) =>
+            apiService.request('/leagues', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+        updateLeague: (id, data) =>
+            apiService.request(`/leagues/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            }),
+        deleteLeague: (id) =>
+            apiService.request(`/leagues/${id}`, { method: 'DELETE' }),
+
+        // Tournaments
+        getMyTournaments: () => apiService.request('/tournaments/my'),
+        createTournament: (data) =>
+            apiService.request('/tournaments', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+        updateTournament: (id, data) =>
+            apiService.request(`/tournaments/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            }),
+        deleteTournament: (id) =>
+            apiService.request(`/tournaments/${id}`, { method: 'DELETE' }),
     },
-    approveLeagueApplication: (applicationId) =>
-        apiService.request(`/league-owner/league/application/${applicationId}/approve`, {
-            method: 'PATCH',
-        }),
-    rejectLeagueApplication: (applicationId) =>
-        apiService.request(`/league-owner/league/application/${applicationId}/reject`, {
-            method: 'PATCH',
-        }),
-
-    // Tournament Applications
-    getTournamentApplications: (tournamentId = null, status = null) => {
-        const params = new URLSearchParams();
-        if (tournamentId) params.append('tournamentId', tournamentId);
-        if (status) params.append('status', status);
-        const query = params.toString() ? `?${params.toString()}` : '';
-        return apiService.request(`/league-owner/tournament/applications${query}`);
-    },
-    approveTournamentApplication: (applicationId) =>
-        apiService.request(`/league-owner/tournament/application/${applicationId}/approve`, {
-            method: 'PATCH',
-        }),
-    rejectTournamentApplication: (applicationId) =>
-        apiService.request(`/league-owner/tournament/application/${applicationId}/reject`, {
-            method: 'PATCH',
-        }),
-
-    // Leagues
-    getMyLeagues: () => apiService.request('/leagues/my'),
-    createLeague: (data) =>
-        apiService.request('/leagues', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
-    updateLeague: (id, data) =>
-        apiService.request(`/leagues/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }),
-    deleteLeague: (id) =>
-        apiService.request(`/leagues/${id}`, { method: 'DELETE' }),
-
-    // Tournaments
-    getMyTournaments: () => apiService.request('/tournaments/my'),
-    createTournament: (data) =>
-        apiService.request('/tournaments', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
-    updateTournament: (id, data) =>
-        apiService.request(`/tournaments/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }),
-    deleteTournament: (id) =>
-        apiService.request(`/tournaments/${id}`, { method: 'DELETE' }),
-    // getPendingApplicationsCount: (id)=>{
-    //     apiService.request(`/leagues/${id}/pending-applicatins-count`)
-    // }
-},
 };

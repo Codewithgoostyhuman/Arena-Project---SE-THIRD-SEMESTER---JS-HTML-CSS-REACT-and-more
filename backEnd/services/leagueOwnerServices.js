@@ -71,30 +71,60 @@ export default class LeagueOwnerService {
   /* ====================
    LEAGUE APPLICATIONS
 ==================== */
-static getLeagueApplications(ownerId, leagueId, status) {
-  return LeagueOwnerDomain.getLeagueApplications(ownerId, leagueId, status);
-}
+static async getLeagueApplications(ownerId, leagueId = null, status = null) {
+    try {
+      return await LeagueOwnerDomain.getLeagueApplications(ownerId, leagueId, status);
+    } catch (err) {
+      console.error('Error in getLeagueApplications service:', err);
+      throw err;
+    }
+  }
 
-static approveLeagueApplication(ownerId, applicationId) {
-  return LeagueOwnerDomain.approveLeagueApplication(ownerId, applicationId);
-}
+  static async approveLeagueApplication(ownerId, applicationId) {
+    try {
+      return await LeagueOwnerDomain.approveLeagueApplication(ownerId, applicationId);
+    } catch (err) {
+      console.error('Error in approveLeagueApplication service:', err);
+      throw err;
+    }
+  }
 
-static rejectLeagueApplication(ownerId, applicationId) {
-  return LeagueOwnerDomain.rejectLeagueApplication(ownerId, applicationId);
-}
+  static async rejectLeagueApplication(ownerId, applicationId) {
+    try {
+      return await LeagueOwnerDomain.rejectLeagueApplication(ownerId, applicationId);
+    } catch (err) {
+      console.error('Error in rejectLeagueApplication service:', err);
+      throw err;
+    }
+  }
 
 /* ====================
    TOURNAMENT APPLICATIONS
 ==================== */
-static getTournamentApplications(ownerId, tournamentId, status) {
-  return LeagueOwnerDomain.getTournamentApplications(ownerId, tournamentId, status);
-}
+static async getTournamentApplications(ownerId, tournamentId = null, status = null) {
+    try {
+      return await LeagueOwnerDomain.getTournamentApplications(ownerId, tournamentId, status);
+    } catch (err) {
+      console.error('Error in getTournamentApplications service:', err);
+      throw err;
+    }
+  }
 
-static approveTournamentApplication(ownerId, applicationId) {
-  return LeagueOwnerDomain.approveTournamentApplication(ownerId, applicationId);
-}
+  static async approveTournamentApplication(ownerId, applicationId) {
+    try {
+      return await LeagueOwnerDomain.approveTournamentApplication(ownerId, applicationId);
+    } catch (err) {
+      console.error('Error in approveTournamentApplication service:', err);
+      throw err;
+    }
+  }
 
-static rejectTournamentApplication(ownerId, applicationId) {
-  return LeagueOwnerDomain.rejectTournamentApplication(ownerId, applicationId);
-}
+  static async rejectTournamentApplication(ownerId, applicationId) {
+    try {
+      return await LeagueOwnerDomain.rejectTournamentApplication(ownerId, applicationId);
+    } catch (err) {
+      console.error('Error in rejectTournamentApplication service:', err);
+      throw err;
+    }
+  }
 }
