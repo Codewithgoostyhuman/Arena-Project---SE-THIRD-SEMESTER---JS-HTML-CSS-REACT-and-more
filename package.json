@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backEnd\" \"npm run dev --prefix frontEnd\""
+    "dev": "concurrently \"npm run dev --prefix backEnd\" \"npm run dev --prefix frontEnd\"",
+    "install-client": "cd client && npm install",
+  "build-client": "cd client && npm run build",
+  "build": "npm install && npm run install-client && npm run build-client",
+  "start": "node backend/server.js"
   },
   "repository": {
     "type": "git",

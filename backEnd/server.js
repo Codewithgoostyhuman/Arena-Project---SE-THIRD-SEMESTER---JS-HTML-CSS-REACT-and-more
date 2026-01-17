@@ -3,12 +3,15 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
 import router from "./routes/index.js";
+import dotenv from "dotenv"
 import { createServer } from 'http';
 import { initializeSocketIO } from './sockets/socketHandler.js';
 import { initializeScheduledJobs } from "./jobs/scheduledJobs.js";
-
+import path from "path"
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config();
 
@@ -45,6 +48,16 @@ if (process.env.NODE_ENV !== "production") {
 
 // Mount all API routes under /api prefix
 app.use("/api", router);
+// Serve React frontend
+const reactBuildPath = path.join(__dirname, "../client/dist"); // Vite
+// const reactBuildPath = path.join(__dirname, "../client/build"); // CRA
+
+app.use(express.static(reactBuildPath));
+
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(reactBuildPath, "index.html"));
+});
+
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -88,12 +101,12 @@ const server = createServer(app);
 const io = initializeSocketIO(server);
 app.set('io', io);
 mongoose
-  .connect("mongodb+srv://arena-database:arena-data-base-123@arena-data.cmwzvyk.mongodb.net/")
+  .connect(MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected successfully");
     initializeScheduledJobs();
     // Start server after successful DB connection
-    server.listen(PORT, () => {
+    server.listen(PORT,"0.0.0.0", () => {
       console.log(`✅ Server with WebSocket running on port ${PORT}`);
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
