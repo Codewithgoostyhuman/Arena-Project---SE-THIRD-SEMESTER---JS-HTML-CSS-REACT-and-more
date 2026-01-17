@@ -17,7 +17,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Codewithgoostyhuman/Arena-Project---SE-THIRD-SEMESTER---JS-HTML-CSS-REACT-and-more/issues"
   },
@@ -36,5 +36,8 @@
     "nodemon": "^3.1.11",
     "path": "^0.12.7",
     "socket.io": "^4.8.3"
-  }
+  },
+  "engines": {
+  "node": ">=18.0.0"
+}
 }
