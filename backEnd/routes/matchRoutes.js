@@ -1,5 +1,21 @@
 import express from "express";
-import * as matchController from "../controllers/matchController.js";
+import {
+  getAllMatches,
+  getMatchById,
+  getMatchesByLeague,
+  getMatchesByTournament,
+  getMatchesByGame,
+  getMyMatches,
+  getMatchState,
+  createMatch,
+  updateMatch,
+  deleteMatch,
+  startMatch,
+  finishMatch,
+  makeMove,
+  spectateMatch
+} from "../controllers/matchController.js";
+
 import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
 
 const router = express.Router();
@@ -8,76 +24,131 @@ const router = express.Router();
 // PUBLIC / PLAYER ACCESS
 // ==============================
 
-// Players can view matches
 router.get(
   "/",
   authenticate,
-  authorizeRoles(Roles.PLAYER, Roles.LEAGUE_OWNER, Roles.OPERATOR, Roles.ADMIN),
-  matchController.getAllMatches
-);
-
-router.get(
-  "/:id",
-  authenticate,
-  authorizeRoles(Roles.PLAYER, Roles.LEAGUE_OWNER, Roles.OPERATOR, Roles.ADMIN),
-  matchController.getMatch
+  authorizeRoles(
+    Roles.PLAYER,
+    Roles.LEAGUE_OWNER,
+    Roles.OPERATOR,
+    Roles.ADMIN
+  ),
+  getAllMatches
 );
 
 router.get(
   "/league/:leagueId",
   authenticate,
-  authorizeRoles(Roles.PLAYER, Roles.LEAGUE_OWNER, Roles.OPERATOR, Roles.ADMIN),
-  matchController.getMatchesByLeague
+  authorizeRoles(
+    Roles.PLAYER,
+    Roles.LEAGUE_OWNER,
+    Roles.OPERATOR,
+    Roles.ADMIN
+  ),
+  getMatchesByLeague
 );
 
 router.get(
   "/tournament/:tournamentId",
   authenticate,
-  authorizeRoles(Roles.PLAYER, Roles.LEAGUE_OWNER, Roles.OPERATOR, Roles.ADMIN),
-  matchController.getMatchesByTournament
+  authorizeRoles(
+    Roles.PLAYER,
+    Roles.LEAGUE_OWNER,
+    Roles.OPERATOR,
+    Roles.ADMIN
+  ),
+  getMatchesByTournament
 );
 
 router.get(
   "/game/:gameId",
   authenticate,
-  authorizeRoles(Roles.PLAYER, Roles.LEAGUE_OWNER, Roles.OPERATOR, Roles.ADMIN),
-  matchController.getMatchesByGame
+  authorizeRoles(
+    Roles.PLAYER,
+    Roles.LEAGUE_OWNER,
+    Roles.OPERATOR,
+    Roles.ADMIN
+  ),
+  getMatchesByGame
 );
 
-// League owners can manage matches
+router.get(
+  "/my-matches",
+  authenticate,
+  getMyMatches
+);
+
+router.get(
+  "/:id/state",
+  authenticate,
+  getMatchState
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles(
+    Roles.PLAYER,
+    Roles.LEAGUE_OWNER,
+    Roles.OPERATOR,
+    Roles.ADMIN
+  ),
+  getMatchById
+);
+
+// ==============================
+// LEAGUE OWNER / ADMIN ACCESS
+// ==============================
+
 router.post(
   "/",
   authenticate,
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
-  matchController.createMatch
+  createMatch
 );
 
 router.put(
   "/:id",
   authenticate,
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
-  matchController.updateMatch
+  updateMatch
 );
 
 router.delete(
   "/:id",
   authenticate,
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
-  matchController.deleteMatch
+  deleteMatch
 );
 
 router.patch(
-  "/start/:id",
+  "/:id/start",
   authenticate,
-  authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
-  matchController.startMatch
+  // authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
+  startMatch
 );
 
 router.patch(
-  "/finish/:id",
+  "/:id/finish",
   authenticate,
   authorizeRoles(Roles.LEAGUE_OWNER, Roles.ADMIN),
-  matchController.finishMatch
+  finishMatch
+);
+
+// ==============================
+// MATCH GAMEPLAY
+// ==============================
+
+router.post(
+  "/:id/move",
+  authenticate,
+  makeMove
+);
+
+router.post(
+  "/:id/spectate",
+  authenticate,
+  spectateMatch
 );
 
 export default router;

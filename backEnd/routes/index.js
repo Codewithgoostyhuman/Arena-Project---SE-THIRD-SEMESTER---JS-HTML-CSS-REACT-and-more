@@ -20,9 +20,10 @@ import interestGroupRoutes from "./interestGroupRoutes.js";
 import arenaRoutes from "./arenaRoutes.js";
 import publicRoutes from "./publicRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
-
+import socketMiddleware from "../middleWare/socketMiddleWare.js";
 const router = express.Router();
-
+// Make Socket.IO available in all routes
+router.use(socketMiddleware);
 // ==========================================
 // MOUNT ALL ROUTES WITH PROPER PREFIXES
 // ==========================================

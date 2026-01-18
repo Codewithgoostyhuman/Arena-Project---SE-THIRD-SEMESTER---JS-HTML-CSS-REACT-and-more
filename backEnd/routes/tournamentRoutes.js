@@ -54,6 +54,11 @@ router.get(
   authorizeRoles(Roles.PLAYER),
   tournamentController.getPlayerApplications
 );
+// NEW ROUTES FOR TOURNAMENT EXECUTION
+router.post('/:id/start', authenticate, tournamentController.startTournament);
+router.get('/:id/bracket', authenticate, tournamentController.getTournamentBracket);
+router.get('/:id/ready-matches', authenticate, tournamentController.getReadyMatches);
+router.get('/:id/standings', authenticate, tournamentController.getTournamentStandings);
 
 /* =======================
    LEAGUE OWNER / OPERATOR ROUTES

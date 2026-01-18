@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Auth/AuthContext';
 import { Gamepad2, Clock, Shield, Users, TrendingUp, Trophy, Calendar } from 'lucide-react';
+import MatchCard from '../reuseableComponents/MatchCard';
 
 // StatsCard Component
 function StatsCard({ title, value, icon, loading }) {
@@ -24,7 +25,7 @@ function StatsCard({ title, value, icon, loading }) {
 }
 
 // Main Dashboard View
-export default function DashboardView() {
+export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
     const { currentUser } = useAuth();
     const [stats, setStats] = useState({
         pendingUsers: 0,
@@ -37,10 +38,14 @@ export default function DashboardView() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [matches, setMatches] = useState([]); // NEW: Store matches
+    const [matchesLoading, setMatchesLoading] = useState(false); // NEW: Matches loading state
 
     useEffect(() => {
         if (currentUser?.role === 'operator') {
             loadOperatorStats();
+        } else if (currentUser?.role === 'player') {
+            loadPlayerMatches(); // NEW: Load player matches
         } else {
             setLoading(false);
         }
@@ -77,6 +82,29 @@ export default function DashboardView() {
             console.error('Failed to load dashboard stats:', error);
             setError(error.message);
         } finally {
+            setLoading(false);
+        }
+    };
+
+    // NEW: Load player matches
+    const loadPlayerMatches = async () => {
+        try {
+            setMatchesLoading(true);
+            const response = await fetch('http://localhost:5000/api/matches/my-matches', {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setMatches(data.matches || []);
+            }
+        } catch (error) {
+            console.error('Failed to load matches:', error);
+        } finally {
+            setMatchesLoading(false);
             setLoading(false);
         }
     };
@@ -181,7 +209,7 @@ export default function DashboardView() {
                     <p className="text-gray-600 mt-2">Welcome back, {currentUser.name}</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <StatsCard
                         title="My Tournaments"
                         value={0}
@@ -196,15 +224,42 @@ export default function DashboardView() {
                     />
                     <StatsCard
                         title="Matches Played"
-                        value={0}
+                        value={matches.length}
                         icon={<Gamepad2 className="h-8 w-8 text-green-600" />}
-                        loading={false}
+                        loading={matchesLoading}
                     />
+                </div>
+
+                {/* My Matches Section - NEW */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-900">My Matches</h2>
+                    {matchesLoading ? (
+                        <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        </div>
+                    ) : matches.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            No matches yet. Join a tournament to start playing!
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {matches.slice(0, 6).map((match) => (
+                                <MatchCard
+                                    key={match._id}
+                                    match={match}
+                                    setCurrentView={setCurrentView}
+                                    setSelectedMatchId={setSelectedMatchId}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         );
     }
-const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
+
+    // League Owner Dashboard
+    const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
         leaguesCount: 0,
         tournamentsCount: 0,
         playersCount: 0,
@@ -212,18 +267,18 @@ const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
     });
 
     useEffect(() => {
-        fetchLeagueOwnerDashboardStats();
-    }, []);
+        if (currentUser?.role === 'leagueOwner') {
+            fetchLeagueOwnerDashboardStats();
+        }
+    }, [currentUser]);
 
     const fetchLeagueOwnerDashboardStats = async () => {
         try {
-            // Fetch leagues
             const leaguesResponse = await fetch('http://localhost:5000/api/leagues/my', {
                 credentials: 'include'
             });
             const leagues = await leaguesResponse.json();
 
-            // Calculate stats
             const leaguesCount = leagues.length;
             const tournamentsCount = leagues.reduce((sum, league) => 
                 sum + (league.tournaments?.length || 0), 0
@@ -240,10 +295,10 @@ const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
             });
         } catch (error) {
             console.error('Error fetching dashboard stats:', error);
-            setStats(prev => ({ ...prev, loading: false }));
+            setLeagueOwnerStats(prev => ({ ...prev, loading: false }));
         }
     };
-    // League Owner Dashboard
+
     if (currentUser?.role === 'leagueOwner') {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -257,25 +312,20 @@ const [LeagueOwnerstats, setLeagueOwnerStats] = useState({
                         title="My Leagues"
                         value={LeagueOwnerstats.leaguesCount}
                         icon={<Shield className="h-8 w-8 text-indigo-600" />}
-                        loading={false}
+                        loading={LeagueOwnerstats.loading}
                     />
                     <StatsCard
-                    title={"My Tournaments"}
-                    value={LeagueOwnerstats.tournamentsCount}
-                    icon={<Shield className='h-8 w-8 text-indigo-600'/>}
-                    loading={false}/>
-                    {/* <StatsCard
+                        title="My Tournaments"
+                        value={LeagueOwnerstats.tournamentsCount}
+                        icon={<Trophy className="h-8 w-8 text-blue-600" />}
+                        loading={LeagueOwnerstats.loading}
+                    />
+                    <StatsCard
                         title="Total Players"
-                        value={0}
-                        icon={<Users className="h-8 w-8 text-blue-600" />}
-                        loading={false}
+                        value={LeagueOwnerstats.playersCount}
+                        icon={<Users className="h-8 w-8 text-green-600" />}
+                        loading={LeagueOwnerstats.loading}
                     />
-                    <StatsCard
-                        title="Active Matches"
-                        value={0}
-                        icon={<Gamepad2 className="h-8 w-8 text-blue-600" />}
-                        loading={false}
-                    /> */}
                 </div>
             </div>
         );

@@ -297,3 +297,148 @@ export const getActiveLeagues = async (req, res, next) => {
     next(error);
   }
 };
+/**
+ * Start a tournament and generate bracket
+ * POST /api/tournaments/:id/start
+ */
+export const startTournament = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tournament = await Tournament.findById(id)
+      .populate('league')
+      .populate('players');
+    
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+    
+    // Verify user is the league owner
+    if (tournament.league.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only league owner can start tournament' });
+    }
+    
+    // Check tournament is in correct state
+    if (tournament.status === 'ongoing' || tournament.status === 'finished') {
+      return res.status(400).json({ message: 'Tournament already started or finished' });
+    }
+    
+    // Check minimum players
+    if (tournament.players.length < 2) {
+      return res.status(400).json({ message: 'Need at least 2 players to start tournament' });
+    }
+    
+    // Generate bracket based on tournament style
+    let matches;
+    
+    switch (tournament.style) {
+      case 'SingleElimination':
+        matches = await tournamentBracketService.generateSingleEliminationBracket(id);
+        break;
+      
+      case 'DoubleRoundRobin':
+      case 'RoundRobin':
+        return res.status(400).json({ message: 'Round Robin not yet implemented' });
+      
+      default:
+        return res.status(400).json({ message: 'Unknown tournament style' });
+    }
+    
+    // Notify via socket
+    if (req.io) {
+      req.io.notifyTournament(id, 'tournament-started', {
+        tournamentId: id,
+        totalMatches: matches.length
+      });
+    }
+    
+    res.json({
+      message: 'Tournament started successfully',
+      tournament,
+      totalMatches: matches.length,
+      firstRoundMatches: matches.filter(m => m.round === 1).length
+    });
+    
+  } catch (error) {
+    console.error('Error starting tournament:', error);
+    res.status(500).json({ message: 'Error starting tournament', error: error.message });
+  }
+};
+
+/**
+ * Get tournament bracket
+ * GET /api/tournaments/:id/bracket
+ */
+export const getTournamentBracket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tournament = await Tournament.findById(id);
+    
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+    
+    const bracket = await tournamentBracketService.getBracket(id);
+    
+    res.json({
+      tournament,
+      bracket
+    });
+    
+  } catch (error) {
+    console.error('Error getting bracket:', error);
+    res.status(500).json({ message: 'Error getting bracket', error: error.message });
+  }
+};
+
+/**
+ * Get ready matches (matches that can be played)
+ * GET /api/tournaments/:id/ready-matches
+ */
+export const getReadyMatches = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const matches = await matchGameService.getReadyMatches(id);
+    
+    res.json({ matches });
+    
+  } catch (error) {
+    console.error('Error getting ready matches:', error);
+    res.status(500).json({ message: 'Error getting ready matches', error: error.message });
+  }
+};
+
+
+/**
+ * Get tournament standings
+ * GET /api/tournaments/:id/standings
+ */
+export const getTournamentStandings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tournament = await Tournament.findById(id)
+      .populate('players', 'name stats')
+      .populate('winners', 'name');
+    
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+    
+    res.json({
+      tournament: {
+        name: tournament.name,
+        status: tournament.status,
+        style: tournament.style
+      },
+      players: tournament.players,
+      winners: tournament.winners
+    });
+    
+  } catch (error) {
+    console.error('Error getting standings:', error);
+    res.status(500).json({ message: 'Error getting standings', error: error.message });
+  }
+};

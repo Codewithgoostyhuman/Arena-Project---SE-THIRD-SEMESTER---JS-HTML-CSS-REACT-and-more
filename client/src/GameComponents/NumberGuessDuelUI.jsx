@@ -1,383 +1,370 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../Auth/AuthContext';
+import { apiService } from '../APIs/apiService';
 
-export default function NumberGuessDuelUI({ competition, currentPlayer }) {
-  const [, refresh] = useState(0);
-  const [guess, setGuess] = useState("");
-  const [secretNumber, setSecretNumber] = useState("");
-  const [showSecretInput, setShowSecretInput] = useState(true);
-
-  // Determine competition type and extract relevant data
-  const competitionType = competition?.constructor?.name || 'Match';
-  const isMatch = competitionType === 'Match';
-  const isTournament = competitionType === 'Tournament';
-  const isLeague = competitionType === 'League';
-
-  // Extract match, game, and player data based on competition type
-  let match, game, players, playerData;
-  
-  if (isMatch) {
-    match = competition;
-    game = match?.game;
-    players = match?.players || [];
-    playerData = currentPlayer || players[0] || { name: "Player 1", Id: "p1" };
-  } else if (isTournament) {
-    // For tournament, get current active match
-    match = competition?.matches?.find(m => m.status === 'running') || competition?.matches?.[0];
-    game = match?.game;
-    players = match?.players || competition?.players || [];
-    playerData = currentPlayer || players[0] || { name: "Player 1", Id: "p1" };
-  } else if (isLeague) {
-    // For league, get current tournament's active match
-    const currentTournament = competition?.tournaments?.find(t => t.status === 'ongoing');
-    match = currentTournament?.matches?.find(m => m.status === 'running') || currentTournament?.matches?.[0];
-    game = match?.game;
-    players = match?.players || [];
-    playerData = currentPlayer || players[0] || { name: "Player 1", Id: "p1" };
-  }
-
-  // Mock data for preview
-  if (!game) {
-    game = { 
-      status: "running",
-      draw: false, 
-      winner: null,
-      secretNumbers: {},
-      rounds: 0,
-      maxRounds: 6,
-      turn: 0
-    };
-    players = [
-      { name: "Player 1", Id: "p1" },
-      { name: "Player 2", Id: "p2" }
-    ];
-    playerData = { name: "Player 1", Id: "p1" };
-  }
-
-  const isFinished = match?.status === "finished" || game?.status === "finished";
-  const isMyTurn = game?.turn === players.findIndex(p => p.Id === playerData.Id);
-  const hasSetSecret = game?.secretNumbers?.[playerData.Id] !== undefined;
+const NumberGuessDuelUI = ({ matchId, onMatchUpdate }) => {
+  const { currentUser } = useAuth();
+  const [match, setMatch] = useState(null);
+  const [gameState, setGameState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [makingMove, setMakingMove] = useState(false);
+  const [guess, setGuess] = useState('');
+  const [roundResult, setRoundResult] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
-    if (game?.status === "idle" && match?.start) {
-      match.start();
-      setShowSecretInput(true);
+    if (matchId) {
+      fetchMatchState();
+      const interval = setInterval(fetchMatchState, 2000);
+      return () => clearInterval(interval);
     }
-  }, []);
+  }, [matchId]);
 
-  const submitSecret = () => {
-    if (!secretNumber || secretNumber < 1 || secretNumber > 10) {
-      alert("Please enter a number between 1 and 10");
-      return;
+  /**
+   * Extract gameState from various possible response structures
+   */
+  const extractGameState = (data) => {
+  console.log('Raw API data:', data);
+  
+  // Possible locations for gameState
+  const possiblePaths = [
+    data?.currentGameState,           // ⭐ ADD THIS - your backend uses this!
+    data?.match?.currentGameState,    // ⭐ ADD THIS too
+    data?.match?.gameState,
+    data?.gameState,
+    data?.state,
+    data?.game,
+    // If the response IS the gameState directly (has playerIds)
+    data?.playerIds ? data : null,
+    // If match object IS the gameState
+    data?.match?.playerIds ? data.match : null,
+  ];
+
+  for (const gs of possiblePaths) {
+    if (gs && (gs.playerIds || gs.players)) {
+      console.log('Found gameState at path:', gs);
+      return gs;
     }
-    
-    if (game?.setSecretNumber) {
-      game.setSecretNumber(playerData.Id, Number(secretNumber));
-      setShowSecretInput(false);
-      setSecretNumber("");
-      refresh(n => n + 1);
+  }
+
+  return null;
+};
+
+  /**
+   * Extract match object from response
+   */
+  const extractMatch = (data) => {
+    if (data?.match) return data.match;
+    if (data?.status) return data; // data itself is the match
+    return data;
+  };
+
+  const fetchMatchState = async () => {
+    try {
+      const data = await apiService.matches.getState(matchId);
+      
+      // Store raw response for debugging
+      setDebugInfo(data);
+      
+      console.log('=== API Response ===', JSON.stringify(data, null, 2));
+      
+      const extractedMatch = extractMatch(data);
+      const extractedGameState = extractGameState(data);
+      
+      console.log('Extracted match:', extractedMatch);
+      console.log('Extracted gameState:', extractedGameState);
+      
+      setMatch(extractedMatch);
+      setGameState(extractedGameState);
+      
+      // Check for round result
+      if (data.roundResult) {
+        setRoundResult(data.roundResult);
+        setTimeout(() => setRoundResult(null), 3000);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching match state:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const submitGuess = () => {
-    if (!guess || guess < 1 || guess > 10) {
-      alert("Please enter a number between 1 and 10");
-      return;
-    }
+  const handleGuess = async (e) => {
+    e.preventDefault();
     
-    if (!hasSetSecret) {
-      alert("Please set your secret number first!");
+    if (!match || !gameState || !currentUser) {
+      console.log('Missing data - match:', !!match, 'gameState:', !!gameState, 'user:', !!currentUser);
       return;
     }
 
-    if (match?.makeMove) {
-      match.makeMove({
-        playerId: playerData.Id,
-        guess: Number(guess),
+    if (makingMove) return;
+    if (match.status !== 'live') return;
+
+    const myId = currentUser._id?.toString() || currentUser._id;
+    
+    // Check if user is a player
+    const playerIds = gameState.playerIds || [];
+    const isPlayer = playerIds.some(id => id?.toString() === myId);
+    
+    if (!isPlayer) {
+      console.log('User is not a player. PlayerIds:', playerIds, 'MyId:', myId);
+      return;
+    }
+
+    // Check if already guessed
+    if (gameState.players?.[myId]?.guess !== null) {
+      setError('You have already guessed this round. Waiting for opponent...');
+      return;
+    }
+
+    const guessNumber = parseInt(guess.trim(), 10);
+
+    if (isNaN(guessNumber) || guessNumber < 1 || guessNumber > 100) {
+      setError('Please enter a number between 1 and 100');
+      return;
+    }
+
+    try {
+      setMakingMove(true);
+      setError(null);
+
+      const response = await apiService.matches.makeMove(matchId, {
+        move: guessNumber,
+        player: currentUser._id
       });
-    }
-    setGuess("");
-    refresh(n => n + 1);
-  };
 
-  const getRoundProgress = () => {
-    const rounds = game?.rounds || 0;
-    const maxRounds = game?.maxRounds || 6;
-    return `${rounds}/${maxRounds}`;
-  };
-
-  const getCompetitionHeader = () => {
-    if (isLeague) {
-      return {
-        title: competition?.name || "League",
-        subtitle: `Tournament • ${players.length} Players`
-      };
-    } else if (isTournament) {
-      return {
-        title: competition?.name || "Tournament",
-        subtitle: `${competition?.status || 'Active'} • ${players.length} Players`
-      };
-    } else {
-      return {
-        title: "Number Duel",
-        subtitle: "Head to Head"
-      };
+      console.log('Move response:', response);
+      setGuess('');
+      
+      if (response.roundResult) {
+        setRoundResult(response.roundResult);
+        setTimeout(() => setRoundResult(null), 4000);
+      }
+      
+      await fetchMatchState();
+      onMatchUpdate?.();
+    } catch (err) {
+      console.error('Error making guess:', err);
+      setError(err.message);
+    } finally {
+      setMakingMove(false);
     }
   };
 
-  const header = getCompetitionHeader();
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-gray-400">Loading game...</span>
+      </div>
+    );
+  }
+
+  // Debug: Show raw response if gameState is missing
+  if (!gameState) {
+    return (
+      <div className="text-center p-8">
+        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+          <p className="text-red-400 font-semibold">Unable to load game state</p>
+          <p className="text-gray-400 text-sm mt-2">
+            The API response structure may not match expected format.
+          </p>
+        </div>
+        
+        {/* Show what we received for debugging */}
+        <div className="bg-gray-800 rounded-lg p-4 text-left mt-4">
+          <div className="text-yellow-400 font-bold mb-2">🔍 Debug - Raw API Response:</div>
+          <pre className="text-xs text-gray-300 overflow-auto max-h-64">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </div>
+        
+        <button
+          onClick={fetchMatchState}
+          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Extract values with safe defaults
+  const { 
+    players = {}, 
+    playerIds = [], 
+    round = 1, 
+    maxRounds = 5, 
+    scores = {}, 
+    gameOver = false, 
+    winner = null,
+    bothGuessed = false 
+  } = gameState;
+
+  const myId = currentUser?._id?.toString() || currentUser?._id;
+  const isPlayer = playerIds.some(id => id?.toString() === myId);
+  const myPlayerData = players?.[myId];
+  const hasGuessedThisRound = myPlayerData?.guess !== null && myPlayerData?.guess !== undefined;
+
+  const opponentId = playerIds.find(id => id?.toString() !== myId);
+  const opponentData = players?.[opponentId];
+  const opponentHasGuessed = opponentData?.guess !== null && opponentData?.guess !== undefined;
+
+  const getWinnerName = () => {
+    if (!winner) return null;
+    if (winner?.toString() === myId) return 'You';
+    return players?.[winner]?.name || 'Opponent';
+  };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen p-6 bg-black text-white overflow-hidden">
-      {/* Animated Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,0,0,0.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
-      
-      {/* Dynamic Red Glows */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-red-600/20 rounded-full blur-[140px] animate-pulse" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-orange-600/15 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '1s' }} />
-
-      <div className="relative w-full max-w-2xl bg-zinc-950/80 backdrop-blur-2xl border border-red-900/30 p-10 rounded-3xl shadow-[0_0_100px_rgba(220,38,38,0.15)] overflow-hidden group">
-        {/* Top Accent Glow */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-red-500 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
-        
-        {/* Corner Accents */}
-        <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-red-500/40 rounded-tl-3xl" />
-        <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-red-500/40 rounded-br-3xl" />
-
-        {/* Title Section */}
-        <div className="relative mb-8 text-center">
-          <div className="inline-block relative">
-            <h3 className="text-4xl font-black tracking-tighter text-white uppercase italic drop-shadow-[0_0_25px_rgba(239,68,68,0.5)]">
-              {header.title}
-            </h3>
-            <div className="absolute -inset-1 bg-red-500/20 blur-xl -z-10" />
+    <div className="max-w-2xl mx-auto">
+      {/* Round Result Toast */}
+      {roundResult && (
+        <div className="mb-4 p-4 bg-yellow-500/20 border border-yellow-500 rounded-lg text-center animate-pulse">
+          <div className="text-lg font-bold text-yellow-400">Round Complete!</div>
+          <div className="text-sm mt-1">
+            {roundResult.isDraw 
+              ? "It's a tie! Both guesses were equally close."
+              : roundResult.roundWinner?.toString() === myId
+                ? "🎉 You won this round!"
+                : "Opponent won this round"
+            }
           </div>
-          <p className="text-zinc-500 text-xs mt-3 font-semibold tracking-[0.25em] uppercase">
-            {header.subtitle}
-          </p>
-          <div className="mt-4 h-px w-40 mx-auto bg-linear-to-r from-transparent via-red-500/50 to-transparent" />
         </div>
+      )}
 
-        {!isFinished ? (
-          <div className="relative w-full space-y-6">
-            {/* Competition Info Bar */}
-            {(isTournament || isLeague) && (
-              <div className="px-4 py-3 bg-black/40 border border-zinc-800/50 rounded-xl">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-600 uppercase tracking-[0.15em] font-semibold">
-                    {isLeague ? 'League Match' : 'Tournament Round'}
-                  </span>
-                  <span className="text-red-500 font-bold">
-                    Round {getRoundProgress()}
-                  </span>
-                </div>
-              </div>
-            )}
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
 
-            {/* Players Display */}
-            <div className="grid grid-cols-2 gap-4">
-              {players.map((p, idx) => (
-                <div 
-                  key={p.Id}
-                  className={`px-4 py-3 rounded-xl border transition-all ${
-                    p.Id === playerData.Id 
-                      ? 'bg-red-900/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
-                      : 'bg-black/40 border-zinc-800/50'
-                  }`}
-                >
-                  <div className="text-xs text-zinc-600 uppercase tracking-[0.15em] font-semibold mb-1">
-                    {p.Id === playerData.Id ? 'You' : `Opponent`}
-                  </div>
-                  <div className={`font-bold tracking-wider ${
-                    p.Id === playerData.Id ? 'text-red-500' : 'text-zinc-400'
-                  }`}>
-                    {p.name}
-                  </div>
-                  {p.Id === playerData.Id && (
-                    <div className="flex gap-1 mt-2">
-                      <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />
-                      <div className="w-1 h-1 bg-red-500/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-1 h-1 bg-red-500/40 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  )}
-                </div>
-              ))}
+      {/* Game Header */}
+      <div className="mb-6 text-center">
+        {gameOver ? (
+          <div className="space-y-2">
+            <div className="text-2xl font-bold text-green-400">
+              {winner ? `${getWinnerName()} Wins! 🎉` : "It's a Draw! 🤝"}
             </div>
-
-            {/* Secret Number Input */}
-            {showSecretInput && !hasSetSecret && (
-              <div className="space-y-4 p-6 bg-zinc-900/40 border border-red-900/30 rounded-2xl">
-                <div className="text-center space-y-2">
-                  <div className="text-sm font-bold text-red-500 uppercase tracking-[0.2em]">
-                    Set Secret Number
-                  </div>
-                  <div className="text-xs text-zinc-600">
-                    Choose a number between 1-10 for your opponent to guess
-                  </div>
-                </div>
-                
-                <div className="relative group/input">
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    placeholder="SECRET NUMBER [1-10]"
-                    className="relative w-full px-6 py-5 bg-black/60 border border-zinc-800/80 text-white text-center text-2xl font-black rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/60 focus:border-red-500/60 transition-all placeholder:text-zinc-700 placeholder:text-sm placeholder:tracking-[0.2em] tracking-wider hover:border-zinc-700"
-                    value={secretNumber}
-                    onChange={(e) => setSecretNumber(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  onClick={submitSecret}
-                  disabled={!secretNumber}
-                  className="relative w-full bg-linear-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
-                >
-                  <span className="relative z-10">Lock Secret</span>
-                </button>
-              </div>
-            )}
-
-            {/* Guess Input */}
-            {hasSetSecret && (
-              <>
-                <div className="relative group/input">
-                  <div className="absolute inset-0 bg-linear-to-r from-red-600/0 via-red-600/5 to-red-600/0 rounded-xl opacity-0 group-hover/input:opacity-100 transition-opacity duration-300" />
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    placeholder="GUESS OPPONENT'S NUMBER [1-10]"
-                    className="relative w-full px-6 py-5 bg-black/60 border border-zinc-800/80 text-white text-center text-2xl font-black rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/60 focus:border-red-500/60 transition-all placeholder:text-zinc-700 placeholder:text-sm placeholder:tracking-[0.2em] tracking-wider hover:border-zinc-700"
-                    value={guess}
-                    onChange={(e) => setGuess(e.target.value)}
-                    disabled={!isMyTurn}
-                  />
-                  {guess && (
-                    <div className="absolute top-1/2 right-5 -translate-y-1/2 flex gap-1">
-                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                      <div className="w-1.5 h-1.5 bg-red-500/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-1.5 h-1.5 bg-red-500/40 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={submitGuess}
-                  disabled={!guess || !isMyTurn}
-                  className="relative w-full bg-linear-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-black py-5 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] active:scale-95 disabled:scale-100 disabled:shadow-none uppercase tracking-[0.25em] text-sm overflow-hidden group/btn"
-                >
-                  <span className="relative z-10">
-                    {!guess ? 'Awaiting Input' : !isMyTurn ? 'Opponent\'s Turn' : 'Fire Guess'}
-                  </span>
-                  {guess && isMyTurn && (
-                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
-                  )}
-                </button>
-              </>
-            )}
-
-            {/* Status Indicator */}
-            <div className="flex items-center justify-center gap-2 text-xs text-zinc-600 uppercase tracking-[0.2em] font-semibold">
-              <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-              <span>
-                {!hasSetSecret ? 'Setting Secrets' : isMyTurn ? 'Your Turn' : 'Opponent\'s Turn'} • Round {getRoundProgress()}
-              </span>
+            <div className="text-gray-400">
+              Final Score: {scores[playerIds[0]] || 0} - {scores[playerIds[1]] || 0}
             </div>
           </div>
         ) : (
-          <div className="relative w-full text-center space-y-6">
-            {/* Result Display */}
-            <div className="relative p-8 bg-black/60 border-2 border-red-500/40 rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-linear-to-br from-red-950/30 via-transparent to-orange-950/30" />
-              
-              <div className="relative space-y-4">
-                <div className="text-xs text-zinc-500 uppercase tracking-[0.3em] font-bold">
-                  Battle Complete
+          <div className="space-y-2">
+            <div className="text-xl font-semibold">🎯 Number Guess Duel</div>
+            <div className="text-2xl font-bold text-blue-400">
+              Round {round} of {maxRounds}
+            </div>
+            <div className="text-gray-400">Guess a number between 1 - 100</div>
+          </div>
+        )}
+      </div>
+
+      {/* Scoreboard */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        {playerIds.map((playerId) => {
+          const pid = playerId?.toString() || playerId;
+          const playerData = players?.[pid] || players?.[playerId];
+          const isMe = pid === myId;
+          const playerScore = scores?.[pid] || scores?.[playerId] || 0;
+          const hasGuessed = playerData?.guess !== null && playerData?.guess !== undefined;
+          
+          return (
+            <div
+              key={pid}
+              className={`p-4 rounded-lg ${
+                isMe ? 'bg-blue-900/50 border border-blue-500' : 'bg-gray-700'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-semibold">
+                    {playerData?.name || 'Player'}
+                    {isMe && <span className="text-blue-400 text-sm ml-2">(You)</span>}
+                  </div>
+                  <div className="text-3xl font-bold mt-2 text-yellow-400">
+                    {playerScore}
+                  </div>
+                  <div className="text-xs text-gray-400">rounds won</div>
                 </div>
-                
-                <div className="h-px w-24 mx-auto bg-linear-to-r from-transparent via-red-500/50 to-transparent" />
-                
-                <div className="text-4xl font-black uppercase italic">
-                  {game?.draw ? (
-                    <div className="space-y-2">
-                      <div className="text-zinc-400 drop-shadow-[0_0_15px_rgba(161,161,170,0.5)]">
-                        Draw
-                      </div>
-                      <div className="text-xs text-zinc-600 tracking-[0.2em] font-semibold">
-                        No Victor
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="text-2xl">🏆</div>
-                      <div className="text-red-500 drop-shadow-[0_0_25px_rgba(239,68,68,0.6)]">
-                        {game?.winner?.name || "Winner"}
-                      </div>
-                      <div className="text-xs text-red-500/60 tracking-[0.25em] font-semibold">
-                        Victory Confirmed
-                      </div>
+                {!gameOver && (
+                  <div className={`text-sm px-2 py-1 rounded ${
+                    hasGuessed ? 'bg-green-500/20 text-green-400' : 'bg-gray-600 text-gray-400'
+                  }`}>
+                    {hasGuessed ? '✓ Guessed' : 'Waiting...'}
+                  </div>
+                )}
+              </div>
+              
+              {(bothGuessed || gameOver) && hasGuessed && (
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <div className="text-sm text-gray-400">Last Guess:</div>
+                  <div className="text-xl font-bold">{playerData?.guess}</div>
+                  {playerData?.distance != null && (
+                    <div className="text-xs text-gray-500">
+                      Distance: {playerData.distance}
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
+          );
+        })}
+      </div>
 
-            {/* Final Standings */}
-            <div className="space-y-2">
-              <div className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-semibold mb-3">
-                Final Standings
-              </div>
-              <div className="grid gap-2">
-                {players.map((p, idx) => (
-                  <div 
-                    key={p.Id}
-                    className={`flex items-center justify-between px-4 py-2 rounded-lg ${
-                      !game?.draw && game?.winner?.Id === p.Id
-                        ? 'bg-red-900/20 border border-red-500/40'
-                        : 'bg-black/40 border border-zinc-800/50'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-zinc-400">
-                      {idx + 1}. {p.name}
-                    </span>
-                    {!game?.draw && game?.winner?.Id === p.Id && (
-                      <span className="text-xs text-red-500 font-bold uppercase tracking-wider">
-                        Winner
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Status Message */}
+      {!gameOver && hasGuessedThisRound && (
+        <div className="mb-6 p-4 bg-gray-800 rounded-lg text-center">
+          <div className="text-lg text-yellow-400">⏳ Waiting for opponent...</div>
+          <div className="text-sm text-gray-400 mt-2">
+            Your guess: <span className="font-bold text-white">{myPlayerData?.guess}</span>
+          </div>
+        </div>
+      )}
 
-            {/* Next Action Button */}
-            <button 
-              onClick={() => {
-                if (isTournament && competition?.matches) {
-                  const nextMatch = competition.matches.find(m => m.status === 'idle');
-                  if (nextMatch) {
-                    nextMatch.start();
-                    refresh(n => n + 1);
-                  }
-                } else {
-                  window.location.reload();
-                }
-              }}
-              className="text-sm text-zinc-600 hover:text-red-500 transition-colors uppercase tracking-[0.25em] font-semibold relative inline-block group/link"
+      {/* Guess Input */}
+      {!gameOver && isPlayer && !hasGuessedThisRound && (
+        <form onSubmit={handleGuess} className="mb-6">
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={guess}
+              onChange={(e) => setGuess(e.target.value)}
+              placeholder="Enter your guess (1-100)"
+              min="1"
+              max="100"
+              disabled={makingMove}
+              className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+            />
+            <button
+              type="submit"
+              disabled={makingMove || !guess}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg"
             >
-              {isTournament ? 'Next Match' : 'Rematch'}
-              <span className="absolute bottom-0 left-0 w-0 h-px bg-red-500 group-hover/link:w-full transition-all duration-300" />
+              {makingMove ? 'Submitting...' : 'Submit Guess'}
             </button>
           </div>
-        )}
+        </form>
+      )}
 
-        {/* Bottom Corner Indicators */}
-        <div className="absolute bottom-4 left-4 flex gap-1">
-          <div className="w-1 h-1 bg-red-500/60 rounded-full animate-pulse" />
-          <div className="w-1 h-1 bg-red-500/40 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-          <div className="w-1 h-1 bg-red-500/20 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-        </div>
-      </div>
+      {/* Debug Panel */}
+      {process.env.NODE_ENV === 'development' && (
+        <details className="mt-6 bg-gray-900 rounded-lg p-4">
+          <summary className="text-yellow-400 font-bold cursor-pointer">🔧 Debug Info</summary>
+          <pre className="text-xs text-gray-300 mt-2 overflow-auto max-h-48">
+            {JSON.stringify({ match, gameState, myId, playerIds }, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   );
-}
+};
+
+export default NumberGuessDuelUI;

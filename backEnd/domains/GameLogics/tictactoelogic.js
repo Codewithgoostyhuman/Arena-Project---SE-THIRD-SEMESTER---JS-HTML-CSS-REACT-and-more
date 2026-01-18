@@ -1,129 +1,134 @@
-import GameEngine from "../Game.js";
-
-export default class TicTacToeEngine extends GameEngine {
-  constructor(players) {
-    super("TicTacToe", players);
-    this.board = Array(9).fill(null); // 3x3 grid (0-8)
-    this.symbols = ["X", "O"]; // Player symbols
-  }
-
+class TicTacToeLogic {
+  
   /**
-   * Make a move in TicTacToe
-   * @param {string} playerId - Player making the move
-   * @param {number} position - Position on board (0-8)
+   * Initialize a new TicTacToe game
    */
-  makeMove(playerId, position) {
-    // Validate game state
-    if (this.state !== "active") {
-      throw new Error("Game is not active");
+  static initializeGame(players) {
+    // FIX: Store the first player's ID, not index 0
+    return {
+      board: Array(9).fill(null),
+      currentPlayer: players[0]._id, // ← Changed from 0 to actual player ID
+      players: {
+        [players[0]._id]: 'X',
+        [players[1]._id]: 'O'
+      },
+      playerIds: [players[0]._id, players[1]._id],
+      gameOver: false,
+      winner: null,
+      winningLine: null,
+      isDraw: false
+    };
+  }
+  
+  /**
+   * Process a move
+   */
+  static processMove(gameState, playerId, move, players) {
+    // Validate move
+    if (gameState.gameOver) {
+      throw new Error('Game is already over');
     }
-
-    // Validate player turn
-    if (!this.isPlayerTurn(playerId)) {
-      throw new Error("Not your turn");
+    
+    // FIX: Proper comparison of player IDs
+    if (gameState.currentPlayer.toString() !== playerId.toString()) {
+      throw new Error('Not your turn');
     }
-
-    // Validate position
+    
+    // 'move' is just the position number, not an object
+    const position = move;
+    
     if (position < 0 || position > 8) {
-      throw new Error("Invalid position. Must be 0-8");
+      throw new Error('Invalid position');
     }
-
-    // Validate position is empty
-    if (this.board[position] !== null) {
-      throw new Error("Position already taken");
+    
+    if (gameState.board[position] !== null) {
+      throw new Error('Position already taken');
     }
-
+    
     // Make the move
-    const symbol = this.symbols[this.currentPlayerIndex];
-    this.board[position] = symbol;
-
-    // Record move
-    this.recordMove(playerId, { position, symbol });
-
+    const newBoard = [...gameState.board];
+    newBoard[position] = gameState.players[playerId];
+    
     // Check for winner
-    if (this.checkWin(symbol)) {
-      this.endGame(playerId, false);
-      return this.getState();
-    }
-
-    // Check for draw
-    if (this.board.every(cell => cell !== null)) {
-      this.endGame(null, true);
-      return this.getState();
-    }
-
-    // Switch to next player
-    this.nextPlayer();
-
-    return this.getState();
-  }
-
-  /**
-   * Check if a symbol has won
-   */
-  checkWin(symbol) {
-    const winPatterns = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-      [0, 4, 8], [2, 4, 6]             // Diagonals
-    ];
-
-    return winPatterns.some(pattern =>
-      pattern.every(index => this.board[index] === symbol)
+    const winResult = this._checkWinner(newBoard);
+    
+    // Determine next player
+    const currentPlayerIndex = gameState.playerIds.findIndex(
+      id => id.toString() === playerId.toString()
     );
-  }
-
-  /**
-   * Get current board state
-   */
-  getState() {
+    const nextPlayerIndex = (currentPlayerIndex + 1) % 2;
+    const nextPlayer = gameState.playerIds[nextPlayerIndex];
+    
+    // Build new state
+    const newState = {
+      ...gameState,
+      board: newBoard,
+      currentPlayer: nextPlayer, // This is now a player ID, not an index
+      gameOver: winResult.gameOver,
+      winner: winResult.winner ? 
+        gameState.playerIds.find(id => gameState.players[id] === winResult.winner) : null,
+      winningLine: winResult.winningLine,
+      isDraw: winResult.isDraw
+    };
+    
     return {
-      ...super.getState(),
-      board: this.board,
-      symbols: this.symbols
+      newState,
+      nextPlayer,
+      gameOver: newState.gameOver,
+      winner: newState.winner,
+      isDraw: newState.isDraw,
+      validMove: true
     };
   }
-
+  
   /**
-   * Get visual representation of board
+   * Check if there's a winner
    */
-  getBoardDisplay() {
-    const display = [];
-    for (let i = 0; i < 9; i += 3) {
-      display.push(
-        this.board.slice(i, i + 3)
-          .map(cell => cell || "-")
-          .join(" | ")
-      );
+  static _checkWinner(board) {
+    const winningCombinations = [
+      [0, 1, 2], // Top row
+      [3, 4, 5], // Middle row
+      [6, 7, 8], // Bottom row
+      [0, 3, 6], // Left column
+      [1, 4, 7], // Middle column
+      [2, 5, 8], // Right column
+      [0, 4, 8], // Diagonal
+      [2, 4, 6]  // Anti-diagonal
+    ];
+    
+    for (const combination of winningCombinations) {
+      const [a, b, c] = combination;
+      
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return {
+          gameOver: true,
+          winner: board[a], // 'X' or 'O'
+          winningLine: combination,
+          isDraw: false
+        };
+      }
     }
-    return display.join("\n---------\n");
-  }
-
-  /**
-   * Serialize TicTacToe state
-   */
-  serialize() {
+    
+    // Check for draw
+    const isBoardFull = board.every(cell => cell !== null);
+    
+    if (isBoardFull) {
+      return {
+        gameOver: true,
+        winner: null,
+        winningLine: null,
+        isDraw: true
+      };
+    }
+    
+    // Game continues
     return {
-      ...super.serialize(),
-      board: this.board,
-      symbols: this.symbols
+      gameOver: false,
+      winner: null,
+      winningLine: null,
+      isDraw: false
     };
-  }
-
-  /**
-   * Restore TicTacToe game
-   */
-  static deserialize(data) {
-    const game = new TicTacToeEngine(data.players);
-    game.board = data.board;
-    game.symbols = data.symbols;
-    game.state = data.state;
-    game.currentPlayerIndex = data.currentPlayerIndex;
-    game.winner = data.winner;
-    game.isDraw = data.isDraw;
-    game.moveHistory = data.moveHistory;
-    game.startedAt = data.startedAt;
-    game.finishedAt = data.finishedAt;
-    return game;
   }
 }
+
+export default TicTacToeLogic;

@@ -1,280 +1,450 @@
-// backend/services/matchService.js
-import Match from "../schemas/MatchSchema.js";
-import Tournament from "../schemas/TournamentSchema.js";
-import Game from "../schemas/GameSchema.js";
-import TicTacToeEngine from "../domains/GameLogics/tictactoelogic.js";
+import Match from '../schemas/MatchSchema.js';
+import Game from '../schemas/GameSchema.js';
+import User from '../schemas/UserSchema.js';
+import tournamentBracketService from './tournamentBracketService.js';
 
-class MatchService {
-  constructor() {
-    // Store active game engines in memory
-    this.activeGames = new Map();
-  }
+// Import game logic engines
+import TicTacToeLogic from '../domains/GameLogics/tictactoelogic.js';
+import RockPaperScissorsLogic from '../domains/GameLogics/rockpaperscissorslogic.js';
+import NumberGuessDuelLogic from '../domains/GameLogics/numberguessduellogic.js';
 
+class MatchGameService {
+  
   /**
-   * Create a match
-   */
-  async createMatch(data) {
-    const match = new Match(data);
-    await match.save();
-
-    if (data.tournament) {
-      const tournament = await Tournament.findById(data.tournament);
-      if (tournament) {
-        tournament.matches.push(match._id);
-        await tournament.save();
-      }
-    }
-
-    return match.populate("players tournament league game");
-  }
-
-  /**
-   * Get match by ID
-   */
-  async getMatchById(id) {
-    const match = await Match.findById(id)
-      .populate("players tournament league game");
-    if (!match) throw new Error("Match not found");
-    return match;
-  }
-
-  /**
-   * Get all matches
-   */
-  async getAllMatches() {
-    return Match.find().populate("players tournament league game");
-  }
-
-  /**
-   * Update match
-   */
-  async updateMatch(id, data) {
-    const match = await Match.findByIdAndUpdate(id, data, { new: true })
-      .populate("players tournament league game");
-    if (!match) throw new Error("Match not found");
-    return match;
-  }
-
-  /**
-   * Delete match
-   */
-  async deleteMatch(id) {
-    const match = await Match.findByIdAndDelete(id);
-    if (!match) throw new Error("Match not found");
-    return match;
-  }
-
-  /**
-   * START MATCH - Initialize game engine
+   * Initialize a match and start the first game
    */
   async startMatch(matchId) {
-    const match = await this.getMatchById(matchId);
-
-    if (match.status !== "upcoming") {
-      throw new Error("Match has already started or finished");
+    const match = await Match.findById(matchId)
+      .populate('players')
+      .populate('game');
+    
+    if (!match) {
+      throw new Error('Match not found');
     }
-
-    // Get game type
-    const game = await Game.findById(match.game);
-    if (!game) throw new Error("Game not found");
-
-    // Initialize game engine based on game type
-    let gameEngine;
-    switch (game.type) {
-      case "TicTacToe":
-        gameEngine = new TicTacToeEngine(match.players.map(p => p._id));
-        break;
-      // Add more game types here
-      default:
-        throw new Error(`Game engine not implemented for ${game.type}`);
+    
+    if (match.players.length !== 2) {
+      throw new Error('Match needs exactly 2 players');
     }
-
-    // Start the game
-    gameEngine.start();
-
-    // Store in active games
-    this.activeGames.set(matchId.toString(), gameEngine);
-
-    // Update match status
-    match.status = "live";
+    
+    if (match.status !== 'pending' && match.status !== 'ready') {
+      throw new Error('Match already started or finished');
+    }
+    
+    // Initialize first game
+    const gameState = this._initializeGameState(match.game.type, match.players);
+    
+    // Set currentTurn based on game type
+    // For simultaneous games (RPS, NumberGuessDuel), currentPlayer is null
+    // So we default to first player for tracking purposes
+    const currentTurnPlayerId = gameState.currentPlayer || match.players[0]._id;
+    
+    // Update match
+    match.status = 'live';
     match.startedAt = new Date();
-    await match.save();
-
-    return {
-      match,
-      gameState: gameEngine.getState()
-    };
-  }
-
-  /**
-   * MAKE MOVE - Player makes a move in match
-   */
-  async makeMove(matchId, playerId, move) {
-    const match = await this.getMatchById(matchId);
-
-    if (match.status !== "live") {
-      throw new Error("Match is not in progress");
-    }
-
-    // Get or restore game engine
-    let gameEngine = this.activeGames.get(matchId.toString());
+    match.currentGameState = gameState;
+    match.currentTurn = currentTurnPlayerId;
+    match.games = [{
+      gameNumber: 1,
+      gameState: gameState,
+      moves: []
+    }];
     
-    if (!gameEngine) {
-      // Restore from database (if server restarted)
-      const game = await Game.findById(match.game);
-      switch (game.type) {
-        case "TicTacToe":
-          gameEngine = TicTacToeEngine.deserialize(match.gameState || {
-            players: match.players.map(p => p._id)
-          });
-          break;
-        default:
-          throw new Error("Cannot restore game engine");
-      }
-      this.activeGames.set(matchId.toString(), gameEngine);
-    }
-
-    // Make the move
-    const newState = gameEngine.makeMove(playerId, move);
-
-    // Save game state to match
-    match.gameState = gameEngine.serialize();
-    match.moves = gameEngine.moveHistory;
-
-    // Check if game finished
-    if (gameEngine.isFinished()) {
-      match.status = "finished";
-      
-      if (!gameEngine.isDraw) {
-        match.winner = gameEngine.getWinner();
-        
-        // Update scores
-        match.score = {
-          player1: match.players[0]._id.toString() === gameEngine.getWinner().toString() ? 1 : 0,
-          player2: match.players[1]._id.toString() === gameEngine.getWinner().toString() ? 1 : 0
-        };
-      } else {
-        match.isDraw = true;
-        match.score = { player1: 0, player2: 0 };
-      }
-
-      // Remove from active games
-      this.activeGames.delete(matchId.toString());
-    }
-
     await match.save();
-
-    return {
-      match,
-      gameState: newState,
-      isFinished: gameEngine.isFinished()
-    };
-  }
-
-  /**
-   * GET MATCH STATE - Get current game state
-   */
-  async getMatchState(matchId) {
-    const match = await this.getMatchById(matchId);
-
-    if (match.status !== "live") {
-      return {
-        match,
-        gameState: match.gameState,
-        message: "Match not in progress"
-      };
-    }
-
-    let gameEngine = this.activeGames.get(matchId.toString());
     
-    if (!gameEngine && match.gameState) {
-      // Restore from saved state
-      const game = await Game.findById(match.game);
-      switch (game.type) {
-        case "TicTacToe":
-          gameEngine = TicTacToeEngine.deserialize(match.gameState);
-          break;
-      }
-      if (gameEngine) {
-        this.activeGames.set(matchId.toString(), gameEngine);
-      }
-    }
-
-    return {
-      match,
-      gameState: gameEngine ? gameEngine.getState() : match.gameState
-    };
-  }
-
-  /**
-   * FORFEIT MATCH - Player gives up
-   */
-  async forfeitMatch(matchId, playerId) {
-    const match = await this.getMatchById(matchId);
-
-    if (match.status === "finished") {
-      throw new Error("Match already finished");
-    }
-
-    // Determine winner (the other player)
-    const winner = match.players.find(
-      p => p._id.toString() !== playerId.toString()
-    );
-
-    match.status = "finished";
-    match.winner = winner._id;
-    match.score = {
-      player1: match.players[0]._id.toString() === winner._id.toString() ? 1 : 0,
-      player2: match.players[1]._id.toString() === winner._id.toString() ? 1 : 0
-    };
-
-    // Remove from active games
-    this.activeGames.delete(matchId.toString());
-
-    await match.save();
+    console.log('Match started:', {
+      matchId: match._id,
+      gameType: match.game.type,
+      currentTurn: match.currentTurn,
+      gameStateCurrentPlayer: gameState.currentPlayer
+    });
+    
     return match;
   }
+  
 
   /**
-   * Get matches by league
+   * Process a player's move
    */
-  async getMatchesByLeague(leagueId) {
-    return Match.find({ league: leagueId })
-      .populate("tournament players game");
+ async processMove(matchId, playerId, move) {
+    console.log('=== PROCESS MOVE ===');
+    console.log('Match ID:', matchId);
+    console.log('Player ID:', playerId);
+    console.log('Move:', move);
+    
+    const match = await Match.findById(matchId)
+      .populate('players')
+      .populate('game');
+    
+    if (!match) {
+      throw new Error('Match not found');
+    }
+    
+    // Auto-start match if it's not live yet
+    if (match.status === 'pending' || match.status === 'ready') {
+      console.log('⚠️ Match not started yet - auto-starting now');
+      const startedMatch = await this.startMatch(matchId);
+      // Re-fetch to get the updated match
+      const updatedMatch = await Match.findById(matchId)
+        .populate('players')
+        .populate('game');
+      Object.assign(match, updatedMatch);
+    }
+    
+    if (match.status !== 'live') {
+      throw new Error('Match is not active');
+    }
+    
+    console.log('Current turn:', match.currentTurn);
+    console.log('Current game state:', match.currentGameState);
+    
+    // If game state doesn't exist, initialize it
+    if (!match.currentGameState) {
+      console.log('⚠️ No game state found - initializing now');
+      const gameState = this._initializeGameState(match.game.type, match.players);
+      match.currentGameState = gameState;
+      match.currentTurn = gameState.currentPlayer;
+      
+      match.games = [{
+        gameNumber: 1,
+        gameState: gameState,
+        moves: []
+      }];
+      
+      await match.save();
+    }
+    
+    // If currentTurn is not set, initialize it from gameState
+    if (!match.currentTurn && match.currentGameState) {
+      console.log('⚠️ currentTurn is null, using currentPlayer from gameState');
+      match.currentTurn = match.currentGameState.currentPlayer;
+      await match.save();
+    }
+    
+    // Validate playerId
+    if (!playerId) {
+      throw new Error('Player ID is required');
+    }
+    
+    // Final validation - currentTurn must exist
+    if (!match.currentTurn) {
+      // Last resort: set it to the first player
+      console.log('⚠️ Still no currentTurn - setting to first player');
+      match.currentTurn = match.players[0]._id;
+      await match.save();
+    }
+    
+    if (!match.currentTurn) {
+      console.error('Match data:', {
+        id: match._id,
+        status: match.status,
+        players: match.players.map(p => ({ id: p._id, name: p.name })),
+        currentGameState: match.currentGameState,
+        currentTurn: match.currentTurn
+      });
+      throw new Error('Unable to determine current turn. Please contact support.');
+    }
+    
+    // Convert to strings for comparison
+    const currentTurnStr = match.currentTurn.toString();
+    const playerIdStr = playerId.toString();
+    
+    console.log('Comparing turns:', { currentTurnStr, playerIdStr });
+    
+    // For simultaneous move games (RPS, NumberGuessDuel), skip turn validation
+    const simultaneousMoveGames = ['RockPaperScissors', 'NumberGuessDuel'];
+    const isSimultaneousGame = simultaneousMoveGames.includes(match.game.type);
+    
+    if (!isSimultaneousGame && currentTurnStr !== playerIdStr) {
+      throw new Error('Not your turn');
+    }
+    
+    // Verify player is in the match
+    const isPlayerInMatch = match.players.some(p => 
+      p._id.toString() === playerIdStr
+    );
+    
+    if (!isPlayerInMatch) {
+      throw new Error('You are not a player in this match');
+    }
+    
+    // Get current game
+    const currentGame = match.games[match.games.length - 1];
+    
+    if (!currentGame) {
+      throw new Error('No active game found');
+    }
+    
+    // Process move based on game type
+    const result = await this._processMoveByGameType(
+      match.game.type,
+      currentGame.gameState,
+      playerId,
+      move,
+      match.players
+    );
+    
+    console.log('Move processed:', result);
+    
+    // Record the move
+    currentGame.moves.push({
+      player: playerId,
+      move: move,
+      timestamp: new Date()
+    });
+    
+    // Update game state
+    currentGame.gameState = result.newState;
+    match.currentGameState = result.newState;
+    
+    // Update current turn
+    if (result.nextPlayer) {
+      match.currentTurn = result.nextPlayer;
+    }
+    
+    // Check if game is over
+    if (result.gameOver) {
+      await this._handleGameEnd(match, currentGame, result.winner);
+    }
+    
+    await match.save();
+    
+    return {
+      match,
+      moveResult: result
+    };
   }
-
+  
   /**
-   * Get matches by tournament
+   * Initialize game state based on game type
    */
-  async getMatchesByTournament(tournamentId) {
-    return Match.find({ tournament: tournamentId })
-      .populate("league players game");
+  _initializeGameState(gameType, players) {
+    switch (gameType) {
+      case 'TicTacToe':
+        return TicTacToeLogic.initializeGame(players);
+      
+      case 'RockPaperScissors':
+        return RockPaperScissorsLogic.initializeGame(players);
+      
+      case 'NumberGuessDuel':
+        return NumberGuessDuelLogic.initializeGame(players);
+      
+      default:
+        throw new Error(`Unknown game type: ${gameType}`);
+    }
   }
-
+  
   /**
-   * Get matches by game
+   * Process move based on game type
    */
-  async getMatchesByGame(gameId) {
-    return Match.find({ game: gameId })
-      .populate("league tournament players");
+  async _processMoveByGameType(gameType, gameState, playerId, move, players) {
+    switch (gameType) {
+      case 'TicTacToe':
+        return TicTacToeLogic.processMove(gameState, playerId, move, players);
+      
+      case 'RockPaperScissors':
+        return RockPaperScissorsLogic.processMove(gameState, playerId, move, players);
+      
+      case 'NumberGuessDuel':
+        return NumberGuessDuelLogic.processMove(gameState, playerId, move, players);
+      
+      default:
+        throw new Error(`Unknown game type: ${gameType}`);
+    }
   }
-
+  
   /**
-   * Get player's matches
+   * Handle when a single game ends
    */
-  async getPlayerMatches(playerId) {
-    return Match.find({ players: playerId })
-      .populate("tournament league game players")
-      .sort({ createdAt: -1 });
+  async _handleGameEnd(match, currentGame, winnerId) {
+    currentGame.winner = winnerId;
+    currentGame.completedAt = new Date();
+    
+    // Update scores
+    const winnerIndex = match.players.findIndex(p => p._id.toString() === winnerId.toString());
+    
+    if (winnerIndex === 0) {
+      match.score.player1++;
+    } else {
+      match.score.player2++;
+    }
+    
+    // Check if match is over (best of X)
+    const gamesNeededToWin = Math.ceil(match.bestOf / 2);
+    
+    if (match.score.player1 >= gamesNeededToWin || match.score.player2 >= gamesNeededToWin) {
+      // Match is over
+      await this._handleMatchEnd(match, winnerId);
+    } else {
+      // Start next game
+      const nextGameState = this._initializeGameState(match.game.type, match.players);
+      match.currentGameState = nextGameState;
+      // ✅ FIX: nextGameState.currentPlayer is already a player ID
+      match.currentTurn = nextGameState.currentPlayer;
+      
+      match.games.push({
+        gameNumber: match.games.length + 1,
+        gameState: nextGameState,
+        moves: []
+      });
+    }
   }
-
+  
   /**
-   * Get live matches
+   * Handle when entire match ends
    */
-  async getLiveMatches() {
-    return Match.find({ status: "live" })
-      .populate("players tournament league game");
+  async _handleMatchEnd(match, winnerId) {
+    const loserId = match.players.find(p => p._id.toString() !== winnerId.toString())._id;
+    
+    match.winner = winnerId;
+    match.loser = loserId;
+    match.status = 'finished';
+    match.completedAt = new Date();
+    
+    // Update player stats
+    await User.findByIdAndUpdate(winnerId, {
+      $inc: { 'stats.wins': 1, 'stats.points': 3 }
+    });
+    
+    await User.findByIdAndUpdate(loserId, {
+      $inc: { 'stats.losses': 1 }
+    });
+    
+    // If this is a tournament match, advance winner
+    if (match.tournament) {
+      await tournamentBracketService.advanceWinner(match._id, winnerId);
+    }
+  }
+  
+  /**
+   * Get match state for spectators/players
+   */
+  async getMatchState(matchId) {
+    const match = await Match.findById(matchId)
+      .populate('players', 'name stats')
+      .populate('winner', 'name')
+      .populate('game');
+    
+    if (!match) {
+      throw new Error('Match not found');
+    }
+    
+    // If match is live but has no game state, initialize it
+    if (match.status === 'live' && !match.currentGameState) {
+      console.log('⚠️ Match is live but missing game state - initializing now');
+      
+      try {
+        const gameState = this._initializeGameState(match.game.type, match.players);
+        
+        // ✅ FIX: gameState.currentPlayer is already a player ID, not an index
+        const currentTurnPlayerId = gameState.currentPlayer;
+        
+        // Use atomic update to avoid version conflicts
+        const updatedMatch = await Match.findOneAndUpdate(
+          { 
+            _id: matchId,
+            status: 'live',
+            $or: [
+              { currentGameState: { $exists: false } },
+              { currentGameState: null }
+            ]
+          },
+          {
+            $set: {
+              currentGameState: gameState,
+              currentTurn: currentTurnPlayerId  // ← Now using the correct player ID
+            },
+            $push: {
+              games: {
+                gameNumber: 1,
+                gameState: gameState,
+                moves: []
+              }
+            }
+          },
+          { 
+            new: true,
+            runValidators: false
+          }
+        )
+        .populate('players', 'name stats')
+        .populate('winner', 'name')
+        .populate('game');
+        
+        if (updatedMatch) {
+          console.log('✅ Game state initialized successfully');
+          console.log('Current turn set to:', updatedMatch.currentTurn);
+          return {
+            matchId: updatedMatch._id,
+            players: updatedMatch.players,
+            game: updatedMatch.game,
+            status: updatedMatch.status,
+            score: updatedMatch.score,
+            currentGameState: updatedMatch.currentGameState,
+            currentTurn: updatedMatch.currentTurn,
+            round: updatedMatch.round,
+            matchNumber: updatedMatch.matchNumber,
+            bestOf: updatedMatch.bestOf,
+            winner: updatedMatch.winner,
+            isFinals: updatedMatch.isFinals
+          };
+        }
+        
+        // If no update happened, re-fetch
+        const refetchedMatch = await Match.findById(matchId)
+          .populate('players', 'name stats')
+          .populate('winner', 'name')
+          .populate('game');
+        
+        if (refetchedMatch && refetchedMatch.currentGameState) {
+          console.log('✅ Game state already initialized by another request');
+          return {
+            matchId: refetchedMatch._id,
+            players: refetchedMatch.players,
+            game: refetchedMatch.game,
+            status: refetchedMatch.status,
+            score: refetchedMatch.score,
+            currentGameState: refetchedMatch.currentGameState,
+            currentTurn: refetchedMatch.currentTurn,
+            round: refetchedMatch.round,
+            matchNumber: refetchedMatch.matchNumber,
+            bestOf: refetchedMatch.bestOf,
+            winner: refetchedMatch.winner,
+            isFinals: refetchedMatch.isFinals
+          };
+        }
+      } catch (error) {
+        console.error('Error initializing game state:', error);
+        throw error;
+      }
+    }
+    
+    return {
+      matchId: match._id,
+      players: match.players,
+      game: match.game,
+      status: match.status,
+      score: match.score,
+      currentGameState: match.currentGameState,
+      currentTurn: match.currentTurn,
+      round: match.round,
+      matchNumber: match.matchNumber,
+      bestOf: match.bestOf,
+      winner: match.winner,
+      isFinals: match.isFinals
+    };
+  }
+  
+  /**
+   * Get all ready matches (waiting for players)
+   */
+  async getReadyMatches(tournamentId) {
+    return await Match.find({
+      tournament: tournamentId,
+      status: 'ready'
+    })
+      .populate('players', 'name')
+      .sort({ round: 1, matchNumber: 1 });
   }
 }
 
-export default new MatchService();
+export default new MatchGameService();

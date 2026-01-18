@@ -99,7 +99,6 @@ export const apiService = {
         getLiveMatches: () => apiService.request('/players/my-matches/live'),
         getMatchSchedule: () => apiService.request('/players/match-schedule'),
         getMatchHistory: () => apiService.request('/players/match-history'),
-
         joinMatch: (matchId) =>
             apiService.request(`/players/matches/${matchId}/join`, { method: 'POST' }),
         makeMove: (matchId, moveData) =>
@@ -332,5 +331,48 @@ export const apiService = {
             }),
         deleteTournament: (id) =>
             apiService.request(`/tournaments/${id}`, { method: 'DELETE' }),
+    },
+    matches: {
+        // Get matches
+        getAll: () => apiService.request('/matches'),
+        getById: (matchId) => apiService.request(`/matches/${matchId}`),
+        getMyMatches: () => apiService.request('/matches/my-matches'),
+        getByLeague: (leagueId) => apiService.request(`/matches/league/${leagueId}`),
+        getByTournament: (tournamentId) => apiService.request(`/matches/tournament/${tournamentId}`),
+        getByGame: (gameId) => apiService.request(`/matches/game/${gameId}`),
+        getState: (matchId) => apiService.request(`/matches/${matchId}/state`),
+        
+        // Match actions
+        create: (matchData) => apiService.request('/matches', {
+            method: 'POST',
+            body: JSON.stringify(matchData)
+        }),
+        
+        update: (matchId, matchData) => apiService.request(`/matches/${matchId}`, {
+            method: 'PUT',
+            body: JSON.stringify(matchData)
+        }),
+        
+        delete: (matchId) => apiService.request(`/matches/${matchId}`, {
+            method: 'DELETE'
+        }),
+        
+        start: (matchId) => apiService.request(`/matches/${matchId}/start`, {
+            method: 'PATCH'
+        }),
+        
+        finish: (matchId) => apiService.request(`/matches/${matchId}/finish`, {
+            method: 'PATCH'
+        }),
+        
+        // Gameplay
+        makeMove: (matchId, moveData) => apiService.request(`/matches/${matchId}/move`, {
+            method: 'POST',
+            body: JSON.stringify(moveData)
+        }),
+        
+        spectate: (matchId) => apiService.request(`/matches/${matchId}/spectate`, {
+            method: 'POST'
+        })
     },
 };
