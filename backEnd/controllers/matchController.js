@@ -331,4 +331,4 @@ export const spectateMatch = async (req, res) => {
     console.error('Error spectating match:', error);
     res.status(500).json({ message: 'Error spectating match', error: error.message });
   }
-};
+};  

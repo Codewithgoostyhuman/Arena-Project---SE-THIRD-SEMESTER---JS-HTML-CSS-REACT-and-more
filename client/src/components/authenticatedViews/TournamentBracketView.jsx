@@ -60,7 +60,7 @@ const TournamentBracketView = () => {
         <div className="overflow-x-auto">
           <div className="flex gap-8 min-w-max">
             {rounds.map((roundNum) => (
-              <div key={roundNum} className="flex flex-col gap-4 min-w-[280px]">
+              <div key={roundNum} className="flex flex-col gap-4 min-w-70">
                 
                 {/* Round Header */}
                 <div className="bg-gray-800 rounded-lg p-4 text-center">
