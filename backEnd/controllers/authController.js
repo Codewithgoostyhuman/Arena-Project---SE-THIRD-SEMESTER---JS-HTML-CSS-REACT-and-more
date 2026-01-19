@@ -7,17 +7,8 @@ import AuthService from "../services/authService.js";
  */
 export const register = async (req, res) => {
   try {
-        console.log('=== REGISTRATION ATTEMPT ===');
-    console.log('Raw body:', req.body);
-    console.log('Body keys:', Object.keys(req.body));
     const { name, email, password, role } = req.body;
 
-    console.log('Extracted fields:', {
-      name,
-      email,
-      password: password ? '***' : undefined,
-      role,
-    });
     // Validate input
     if (!name || !email || !password) {
       return res.status(400).json({ 

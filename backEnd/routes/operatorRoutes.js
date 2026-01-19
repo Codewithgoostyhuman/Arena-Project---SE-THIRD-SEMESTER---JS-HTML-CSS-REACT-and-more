@@ -1,7 +1,7 @@
 // backend/routes/operatorRoutes.js
 import express from 'express';
 import * as operatorController from '../controllers/operatorController.js';
-import { authenticate, authorizeRoles,Roles } from '../middleware/auth.js';
+import { authenticate, authorizeRoles, Roles } from '../middleware/auth.js';
 
 const router = express.Router();
 

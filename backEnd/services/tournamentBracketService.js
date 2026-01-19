@@ -7,13 +7,46 @@ class TournamentBracketService {
    * Generate all matches for a Single Elimination tournament
    */
   async generateSingleEliminationBracket(tournamentId) {
+    console.log('=== GENERATING SINGLE ELIMINATION BRACKET ===');
+    console.log('Tournament ID:', tournamentId);
+    
+    // ✅ CRITICAL: Populate league AND the game within league
     const tournament = await Tournament.findById(tournamentId)
       .populate('players')
-      .populate('league');
+      .populate({
+        path: 'league',
+        populate: { path: 'game' }  // ✅ Nested populate to get league.game
+      });
     
     if (!tournament) {
       throw new Error('Tournament not found');
     }
+    
+    // ✅ CRITICAL: Validate league and game exist
+    if (!tournament.league) {
+      console.error('Tournament has no league:', {
+        tournamentId: tournament._id,
+        name: tournament.name
+      });
+      throw new Error('Tournament must be associated with a league');
+    }
+    
+    if (!tournament.league.game) {
+      console.error('League has no game assigned:', {
+        tournamentId: tournament._id,
+        leagueId: tournament.league._id,
+        leagueName: tournament.league.name
+      });
+      throw new Error('League must have a game assigned before generating bracket');
+    }
+    
+    console.log('Tournament details:', {
+      tournament: tournament.name,
+      league: tournament.league.name,
+      game: tournament.league.game.name,
+      gameType: tournament.league.game.type,
+      players: tournament.players.length
+    });
     
     if (tournament.players.length < 2) {
       throw new Error('Need at least 2 players for a tournament');
@@ -32,6 +65,13 @@ class TournamentBracketService {
     // Calculate number of rounds
     const numRounds = Math.log2(bracketSize);
     
+    console.log('Bracket structure:', {
+      numPlayers,
+      bracketSize,
+      numByes,
+      numRounds
+    });
+    
     // Generate matches round by round
     const allMatches = [];
     let currentRoundMatches = [];
@@ -39,13 +79,15 @@ class TournamentBracketService {
     // Round 1 - First round matches
     const firstRoundPairs = this._createFirstRoundPairs(seededPlayers, numByes);
     
+    console.log(`Creating ${firstRoundPairs.length} first round matches...`);
+    
     for (let i = 0; i < firstRoundPairs.length; i++) {
       const pair = firstRoundPairs[i];
       
       const match = new Match({
         tournament: tournamentId,
         league: tournament.league._id,
-        game: tournament.league.game,
+        game: tournament.league.game._id,  // ✅ Use league's game
         players: pair.players.filter(p => p !== null), // Remove byes
         round: 1,
         matchNumber: i + 1,
@@ -53,8 +95,9 @@ class TournamentBracketService {
           player1Seed: pair.seeds[0],
           player2Seed: pair.seeds[1]
         },
-        status: pair.players.includes(null) ? 'finished' : 'pending', // Auto-finish bye matches
-        bestOf: 1 // Can be configured
+        status: pair.players.includes(null) ? 'finished' : 'ready', // Set to ready if both players present
+        bestOf: 1, // Can be configured
+        score: { player1: 0, player2: 0 }  // ✅ Initialize score
       });
       
       // If it's a bye, auto-assign winner
@@ -66,6 +109,8 @@ class TournamentBracketService {
       const savedMatch = await match.save();
       currentRoundMatches.push(savedMatch);
       allMatches.push(savedMatch);
+      
+      console.log(`  Match ${i + 1}: Round 1, Match #${match.matchNumber}, Status: ${match.status}`);
     }
     
     // Generate remaining rounds
@@ -73,11 +118,13 @@ class TournamentBracketService {
       const nextRoundMatches = [];
       const matchesInRound = Math.pow(2, numRounds - round);
       
+      console.log(`Creating ${matchesInRound} matches for round ${round}...`);
+      
       for (let i = 0; i < matchesInRound; i++) {
         const match = new Match({
           tournament: tournamentId,
           league: tournament.league._id,
-          game: tournament.league.game,
+          game: tournament.league.game._id,  // ✅ Use league's game
           players: [], // Will be filled when previous matches complete
           round: round,
           matchNumber: i + 1,
@@ -87,7 +134,8 @@ class TournamentBracketService {
             currentRoundMatches[i * 2 + 1]._id
           ],
           isFinals: round === numRounds,
-          bestOf: round === numRounds ? 3 : 1 // Finals best of 3
+          bestOf: round === numRounds ? 3 : 1, // Finals best of 3
+          score: { player1: 0, player2: 0 }  // ✅ Initialize score
         });
         
         const savedMatch = await match.save();
@@ -102,6 +150,8 @@ class TournamentBracketService {
         
         nextRoundMatches.push(savedMatch);
         allMatches.push(savedMatch);
+        
+        console.log(`  Match ${allMatches.length}: Round ${round}, Match #${match.matchNumber}, Status: ${match.status}`);
       }
       
       currentRoundMatches = nextRoundMatches;
@@ -116,6 +166,8 @@ class TournamentBracketService {
       })),
       status: 'ongoing'
     });
+    
+    console.log(`✅ Generated ${allMatches.length} total matches for tournament`);
     
     return allMatches;
   }
@@ -215,6 +267,7 @@ class TournamentBracketService {
     const matches = await Match.find({ tournament: tournamentId })
       .populate('players', 'name')
       .populate('winner', 'name')
+      .populate('game', 'name type')  // ✅ Also populate game in bracket view
       .sort({ round: 1, matchNumber: 1 });
     
     const bracket = {};

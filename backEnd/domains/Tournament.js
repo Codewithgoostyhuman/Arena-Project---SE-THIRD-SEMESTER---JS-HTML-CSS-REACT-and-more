@@ -22,7 +22,8 @@ export default class Tournament {
       .populate({ path: 'league', populate: { path: 'game', select: 'name type' } })
       .populate('players', 'name email stats')
       .populate('winners', 'name email')
-      .populate('applications.player', 'name email')
+      .populate('applications', 'user status createdAt')
+      .populate('matches')
       .populate('exclusiveSponsor', 'name');
     if (!tournament) throw new Error("Tournament not found");
     return tournament;
@@ -194,20 +195,22 @@ static async getPlayerApplications(playerId) {
     })
     .sort({ createdAt: -1 });
 
-  // Format the response
-  return applications.map(app => ({
-    _id: app._id,
-    tournament: {
-      _id: app.target._id,
-      name: app.target.name,
-      startDate: app.target.playStartDate,
-      status: app.target.status,
-      league: app.target.league
-    },
-    status: app.status,
-    appliedAt: app.createdAt,
-    reviewedAt: app.updatedAt
-  }));
+  // Format the response, filtering out applications with missing/deleted tournaments
+  return applications
+    .filter(app => app.target)
+    .map(app => ({
+      _id: app._id,
+      tournament: {
+        _id: app.target._id,
+        name: app.target.name,
+        startDate: app.target.playStartDate,
+        status: app.target.status,
+        league: app.target.league
+      },
+      status: app.status,
+      appliedAt: app.createdAt,
+      reviewedAt: app.updatedAt
+    }));
 }
 
   /* ================================
@@ -253,15 +256,13 @@ static async updateApplicationStatus(tournamentId, applicationId, status) {
      RECORD MATCH RESULT
   ================================= */
   static async recordMatchResult(tournamentId, matchId, winnerId, isDraw = false) {
-    const tournament = await TournamentModel.findById(tournamentId);
-    if (!tournament) throw new Error("Tournament not found");
-
-    const match = tournament.matches.id(matchId);
+    const match = await MatchModel.findById(matchId);
     if (!match) throw new Error("Match not found");
 
     match.winner = winnerId;
     match.isDraw = isDraw;
-    await tournament.save();
+    match.status = "finished";
+    await match.save();
     return match;
   }
 
@@ -355,17 +356,14 @@ static async updateApplicationStatus(tournamentId, applicationId, status) {
      SUBMIT MATCH RESULT
   ================================= */
   static async submitMatchResult(tournamentId, matchId, winnerId, score) {
-    const tournament = await TournamentModel.findById(tournamentId).populate("matches players");
-    if (!tournament) throw new Error("Tournament not found");
-
-    const match = tournament.matches.id(matchId);
+    const match = await MatchModel.findById(matchId);
     if (!match) throw new Error("Match not found");
 
     match.winner = winnerId;
     match.score = score;
-    match.status = "completed";
+    match.status = "finished";
 
-    await tournament.save();
+    await match.save();
     return match;
   }
 
@@ -376,20 +374,25 @@ static async updateApplicationStatus(tournamentId, applicationId, status) {
     const tournament = await TournamentModel.findById(tournamentId).populate("matches players");
     if (!tournament) throw new Error("Tournament not found");
 
-    // Check all matches completed
-    const incomplete = tournament.matches.some(m => m.status !== "completed");
+    // Check all matches finished
+    const incomplete = tournament.matches.some(m => m.status !== "finished");
     if (incomplete) throw new Error("Tournament is not finished yet");
 
     // Determine winner: simplest = most match wins
     const winCounts = {};
-    tournament.players.forEach(p => winCounts[p.toString()] = 0);
+    tournament.players.forEach(p => winCounts[p._id.toString()] = 0);
     tournament.matches.forEach(m => {
-      if (m.winner) winCounts[m.winner.toString()] += 1;
+      if (m.winner) {
+        const winnerId = m.winner.toString();
+        if (winCounts[winnerId] !== undefined) {
+          winCounts[winnerId] += 1;
+        }
+      }
     });
 
     const winnerId = Object.keys(winCounts).reduce((a, b) => winCounts[a] > winCounts[b] ? a : b);
-    tournament.status = "completed";
-    tournament.winner = winnerId;
+    tournament.status = "finished";
+    tournament.winners = [winnerId];
     await tournament.save();
     return tournament;
   }

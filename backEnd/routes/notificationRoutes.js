@@ -1,7 +1,7 @@
 // backend/routes/notificationRoutes.js
 import express from "express";
 import notificationService from "../services/notificationService.js";
-import { authenticate } from "../middleWare/auth.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 

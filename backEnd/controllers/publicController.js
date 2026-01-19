@@ -182,6 +182,8 @@ export const getLiveMatches = async (req, res) => {
   try {
     const matches = await Match.find({ status: "live" })
       .populate("players", "name")
+      .populate("winner", "name")
+      .populate("currentTurn", "name")
       .populate("tournament", "name")
       .populate("league", "name")
       .populate("game", "name type")
@@ -201,6 +203,8 @@ export const getMatchDetails = async (req, res) => {
   try {
     const match = await Match.findById(req.params.id)
       .populate("players", "name stats")
+      .populate("winner", "name")
+      .populate("currentTurn", "name")
       .populate("tournament", "name style")
       .populate("league", "name")
       .populate("game", "name type description rules");
@@ -224,7 +228,12 @@ export const getMatchState = async (req, res) => {
     const state = await matchService.getMatchState(req.params.id);
     res.json(state);
   } catch (err) {
-    res.status(404).json({ message: err.message });
+    console.error('CRITICAL Error in public getMatchState:', err);
+    res.status(500).json({ 
+      message: 'Error getting match state', 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 };
 

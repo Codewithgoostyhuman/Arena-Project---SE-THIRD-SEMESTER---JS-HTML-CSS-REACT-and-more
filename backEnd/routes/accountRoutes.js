@@ -1,7 +1,7 @@
 // routes/accountRoutes.js
 import express from "express";
 import * as accountController from "../controllers/accountController.js";
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 
 const router = express.Router();
 

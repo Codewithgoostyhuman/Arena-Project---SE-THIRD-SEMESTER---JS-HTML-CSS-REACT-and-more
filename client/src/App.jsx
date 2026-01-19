@@ -56,6 +56,8 @@ function AppContent() {
                     <PublicViews 
                         currentView={currentView} 
                         setCurrentView={setCurrentView} 
+                        selectedMatchId={selectedMatchId}
+                        setSelectedMatchId={setSelectedMatchId}
                     />
                 ) : (
                     <AuthenticatedViews 

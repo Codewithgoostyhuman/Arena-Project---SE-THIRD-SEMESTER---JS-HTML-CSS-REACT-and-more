@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 import * as tournamentController from "../controllers/tournamentController.js";
 
 const router = express.Router();

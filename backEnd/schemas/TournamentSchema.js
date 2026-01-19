@@ -33,13 +33,7 @@ const TournamentSchema = new mongoose.Schema({
     ref: 'Application'
   }],
 
-  matches: [
-    {
-      players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-      winner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      isDraw: Boolean,
-    },
-  ],
+  matches: [{ type: mongoose.Schema.Types.ObjectId, ref: "Match" }],
 
   winners: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
@@ -81,7 +75,7 @@ const TournamentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["planning", "seeking_sponsors", "open_for_applications", "upcoming", "ongoing", "finished"],
-    default: "planning",
+    default: "open_for_applications",
   },
 }, {
   timestamps: true

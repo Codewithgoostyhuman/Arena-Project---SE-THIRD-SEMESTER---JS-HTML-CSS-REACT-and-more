@@ -249,7 +249,7 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
           <div className="font-bold mb-2">Debug Info:</div>
           <div>Match Status: {match.status}</div>
           <div>Current Turn (ID): {match.currentTurn}</div>
-          <div>Your ID: {currentUser._id}</div>
+          <div>Your ID: {currentUser?._id}</div>
           <div>Is Your Turn: {isMyTurn ? 'Yes' : 'No'}</div>
           <div>Your Player Index: {playerIndex}</div>
           <div>Winner: {gameState.winner || 'None'}</div>

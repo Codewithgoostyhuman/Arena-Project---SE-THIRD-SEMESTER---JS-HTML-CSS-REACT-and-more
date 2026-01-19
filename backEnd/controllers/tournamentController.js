@@ -1,5 +1,8 @@
 import tournamentService from "../services/tournamentService.js";
 import League from "../schemas/LeagueSchema.js";
+import Tournament from "../schemas/TournamentSchema.js";
+import tournamentBracketService from "../services/tournamentBracketService.js";
+import matchGameService from "../services/matchService.js";
 
 /* ================================
    LEAGUE OWNER / OPERATOR ROUTES

@@ -1,7 +1,7 @@
 // backend/routes/leagueRoutes.js
 import express from 'express';
 import * as leagueController from '../controllers/leagueController.js';
-import { authenticate, authorizeRoles, Roles } from '../middleWare/auth.js';
+import { authenticate, authorizeRoles, Roles } from '../middleware/auth.js';
 
 const router = express.Router();
 

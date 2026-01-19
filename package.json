@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backEnd\" \"npm run dev --prefix client\"",
     "install-client": "cd client && npm install",
-  "build-client": "cd client && npm run build",
-  "build": "npm install && npm run install-client && npm run build-client",
-  "start": "node backend/server.js"
+    "build-client": "cd client && npm run build",
+    "build": "npm install && npm run install-client && npm run build-client",
+    "start": "node backEnd/server.js"
   },
   "repository": {
     "type": "git",
@@ -38,7 +38,6 @@
     "socket.io": "^4.8.3"
   },
   "engines": {
-  "node": ">=18.0.0"
-}
-
+    "node": ">=18.0.0"
+  }
 }

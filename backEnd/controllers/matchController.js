@@ -152,29 +152,56 @@ export const finishMatch = async (req, res) => {
  * POST /api/matches/:id/start
  */
 export const startMatch = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user?._id;
+  
   try {
-    const { id } = req.params;
-    const userId = req.user._id;
+    console.log('=== START MATCH REQUEST ===');
+    console.log('Match ID:', id);
+    console.log('User ID:', userId);
     
+    // Validate match ID format
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid match ID format' });
+    }
+    
+    // Find match
+    console.log('Fetching match from database...');
     const match = await Match.findById(id)
       .populate('players')
       .populate('game');
     
     if (!match) {
+      console.log('Match not found');
       return res.status(404).json({ message: 'Match not found' });
     }
+    
+    console.log('Match found:', {
+      id: match._id,
+      status: match.status,
+      players: match.players.map(p => ({ id: p._id, name: p.name })),
+      game: match.game?.name
+    });
     
     // Verify user is a player in this match
     const isPlayer = match.players.some(p => p._id.toString() === userId.toString());
     
     if (!isPlayer) {
+      console.log('User is not a player in this match');
       return res.status(403).json({ message: 'You are not a player in this match' });
     }
     
+    console.log('User verified as player, starting match...');
+    
+    // Start the match via service
     const startedMatch = await matchGameService.startMatch(id);
     
-    // ✅ Populate currentTurn before sending response
+    console.log('Match started successfully, populating data...');
+    
+    // Populate currentTurn before sending response
     await startedMatch.populate('currentTurn', 'name');
+    
+    console.log('=== MATCH START SUCCESS ===');
     
     res.json({
       message: 'Match started',
@@ -182,8 +209,23 @@ export const startMatch = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error starting match:', error);
-    res.status(500).json({ message: 'Error starting match', error: error.message });
+    console.error('=== MATCH START ERROR ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Match ID:', id);
+    console.error('User ID:', userId);
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    console.error('=========================');
+    
+    res.status(500).json({ 
+      message: 'Error starting match', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? {
+        stack: error.stack,
+        type: error.constructor.name
+      } : undefined
+    });
   }
 };
 
@@ -231,17 +273,15 @@ export const makeMove = async (req, res) => {
 export const getMatchState = async (req, res) => {
   try {
     const { id } = req.params;
-    
     const state = await matchGameService.getMatchState(id);
-    
-    // ✅ Note: matchGameService.getMatchState already returns populated data
-    // The service handles the population internally
-    
     res.json(state);
-    
   } catch (error) {
-    console.error('Error getting match state:', error);
-    res.status(500).json({ message: 'Error getting match state', error: error.message });
+    console.error('CRITICAL Error in getMatchState:', error);
+    res.status(500).json({ 
+      message: 'Error getting match state', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 

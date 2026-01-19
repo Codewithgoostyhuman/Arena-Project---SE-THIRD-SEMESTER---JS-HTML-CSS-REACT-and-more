@@ -6,6 +6,8 @@ import RatingFormula from "../schemas/RatingFormulaSchema.js";
 import User from "../schemas/UserSchema.js";
 import tournamentStyleService from "./tournamentStyleService.js";
 import notificationService from "./notificationService.js";
+import matchGameService from "./matchService.js";
+import tournamentBracketService from "./tournamentBracketService.js";
 import Tournament from "../domains/Tournament.js";
 
 class TournamentService {
@@ -280,48 +282,85 @@ class TournamentService {
   }
 
   async startTournament(tournamentId) {
-    const tournament = await TournamentModel.findById(tournamentId)
-      .populate("league")
-      .populate("players");
+  const tournament = await TournamentModel.findById(tournamentId)
+    .populate({
+      path: "league",
+      populate: { path: "game" }
+    })
+    .populate("players");
 
-    if (!tournament) throw new Error("Tournament not found");
+  if (!tournament) throw new Error("Tournament not found");
 
-    if (tournament.players.length < 2) {
-      throw new Error("Need at least 2 players to start tournament");
-    }
+  if (tournament.players.length < 2) {
+    throw new Error("Need at least 2 players to start tournament");
+  }
 
-    tournament.status = "ongoing";
-    await tournament.save();
+  // Set tournament status to ongoing
+  tournament.status = "ongoing";
 
+  // Check if matches already exist (generated during kickoff)
+  let createdMatches = [];
+  if (tournament.matches && tournament.matches.length > 0) {
+    // Fetch existing matches
+    createdMatches = await MatchModel.find({ _id: { $in: tournament.matches } });
+  } else {
+    // Generate matches if they don't exist
     const matches = await tournamentStyleService.generateMatches(
       tournament.style,
       tournament.players.map(p => p._id)
     );
 
-    const createdMatches = await Promise.all(
+    if (!tournament.league?.game) {
+      console.error('❌ Cannot start tournament: League is missing game reference', { 
+        tournamentId, 
+        leagueId: tournament.league?._id 
+      });
+      throw new Error('Tournament league is missing game configuration');
+    }
+
+    createdMatches = await Promise.all(
       matches.map(matchData => {
         const match = new MatchModel({
           tournament: tournamentId,
           league: tournament.league._id,
-          game: tournament.league.game,
+          game: tournament.league.game._id,
           players: matchData.players,
-          status: "upcoming"
+          round: matchData.round,
+          matchNumber: matchData.matchNumber,
+          status: matchData.players.length === 2 ? "ready" : "pending"
         });
         return match.save();
       })
     );
 
     tournament.matches = createdMatches.map(m => m._id);
-    await tournament.save();
-
-    return { tournament, matches: createdMatches };
   }
+  
+  // Save tournament after status change (regardless of whether matches existed)
+  await tournament.save();
+
+  // Phase 2: Set Round 1 matches to live
+  const round1Matches = createdMatches.filter(m => m.round === 1 && m.players.length === 2);
+  
+  for (const match of round1Matches) {
+     try {
+       await matchGameService.startMatch(match._id);
+     } catch (err) {
+       console.error(`Error starting match ${match._id}:`, err);
+     }
+  }
+
+  return { tournament, matches: createdMatches };
+}
 
   async completeTournament(tournamentId) {
     const tournament = await TournamentModel.findById(tournamentId)
       .populate("matches")
       .populate("players")
-      .populate("league");
+      .populate({
+        path: "league",
+        populate: { path: "game ratingFormula" }  // ✅ Populate both game and formula
+      });
 
     if (!tournament) throw new Error("Tournament not found");
 
@@ -391,12 +430,21 @@ class TournamentService {
   }
 
   async kickoffTournamentAutomatically(tournamentId) {
-    const tournament = await TournamentModel.findById(tournamentId);
+    const tournament = await TournamentModel.findById(tournamentId)
+      .populate({
+  path: "league",
+  populate: { path: "game" }  // ✅ Now league.game is populated!
+})
+    
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
     
     if (tournament.status !== 'open_for_applications') {
       throw new Error('Tournament not ready to kickoff');
     }
     
+    // Approve pending applications (up to max players)
     const pendingApps = tournament.applications
       .filter(app => app.status === 'pending')
       .slice(0, tournament.maxPlayers - tournament.players.length);
@@ -409,6 +457,7 @@ class TournamentService {
       }
     });
     
+    // Reject remaining pending applications
     tournament.applications
       .filter(app => app.status === 'pending')
       .forEach(app => {
@@ -416,10 +465,71 @@ class TournamentService {
         app.reviewedAt = new Date();
       });
     
-    tournament.status = 'upcoming';
-    await tournament.save();
+    // Check minimum player requirement
+    if (tournament.players.length < 2) {
+      tournament.status = 'finished';
+      await tournament.save();
+      return { 
+        tournament, 
+        cancelled: true, 
+        reason: 'Not enough players (minimum 2 required)' 
+      };
+    }
     
-    return tournament;
+    // Generate matches
+    let createdMatches = [];
+    
+    if (tournament.style === 'SingleElimination') {
+      // Use bracket service for SE (handles byes, seeding, nextMatch links)
+      createdMatches = await tournamentBracketService.generateSingleEliminationBracket(tournamentId);
+      
+      // Bracket service sets status to 'ongoing', but for kickoff we might want 'upcoming'
+      // if playStartDate hasn't arrived. But usually kickoff happens close to play start.
+      // Let's respect the 'upcoming' logic for consistency with scheduling.
+      tournament.status = 'upcoming';
+      tournament.matches = createdMatches.map(m => m._id);
+      await tournament.save();
+      
+    } else {
+      // Use style service for other types (RoundRobin etc) - fallback
+      const matches = await tournamentStyleService.generateMatches(
+        tournament.style,
+        tournament.players
+      );
+      
+      if (!tournament.league?.game) {
+        console.error('❌ Cannot kickoff tournament: League is missing game reference', { 
+          tournamentId, 
+          leagueId: tournament.league?._id 
+        });
+        throw new Error('Tournament league is missing game configuration');
+      }
+  
+      console.log(`Creating ${matches.length} matches for game: ${tournament.league.game}`);
+  
+      // Create match documents in database
+      createdMatches = await Promise.all(
+        matches.map(matchData => {
+          const match = new MatchModel({
+            tournament: tournamentId,
+            league: tournament.league._id,
+            game: tournament.league.game._id,
+            players: matchData.players,
+            round: matchData.round,
+            matchNumber: matchData.matchNumber,
+            status: matchData.players.length === 2 ? "ready" : "pending"
+          });
+          return match.save();
+        })
+      );
+      
+      // Phase 1: Set status to upcoming
+      tournament.matches = createdMatches.map(m => m._id);
+      tournament.status = 'upcoming';
+      await tournament.save();
+    }
+    
+    return { tournament, matches: createdMatches };
   }
 
   async checkAndKickoffTournaments() {
@@ -428,13 +538,26 @@ class TournamentService {
     const tournamentsToKickoff = await TournamentModel.find({
       status: 'open_for_applications',
       applicationEndDate: { $lte: now }
-    });
+    }).populate('players');
     
     const results = [];
     for (const tournament of tournamentsToKickoff) {
       try {
-        const kicked = await this.kickoffTournamentAutomatically(tournament._id);
-        results.push({ id: kicked._id, status: 'kicked off' });
+        const result = await this.kickoffTournamentAutomatically(tournament._id);
+        
+        if (result.cancelled) {
+          results.push({ 
+            id: result.tournament._id, 
+            status: 'finished', 
+            reason: result.reason 
+          });
+        } else {
+          results.push({ 
+            id: result.tournament._id, 
+            status: 'started', 
+            matchesGenerated: result.matches.length 
+          });
+        }
       } catch (err) {
         results.push({ id: tournament._id, status: 'error', error: err.message });
       }

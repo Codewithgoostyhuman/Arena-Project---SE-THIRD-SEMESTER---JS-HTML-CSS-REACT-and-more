@@ -11,6 +11,7 @@ import ManageRatingFormulasView from './ManangeRatingView';
 import CreateTournamentView from './CreateTournamentView';
 import MyTournamentsView from './MyTournamentsView';
 import ApplicationsView from './LeagueOwnerApplicationView';
+import LiveMatchesView from '../publicViews/LiveMatchesView';
 import MatchView from './MatchView'; // NEW: Import MatchView
 
 export default function AuthenticatedViews({ 
@@ -81,6 +82,14 @@ export default function AuthenticatedViews({
                 <ApplicationsView setCurrentView={setCurrentView} />
             ) : null;
         
+        case 'live':
+            return (
+                <LiveMatchesView 
+                    setCurrentView={setCurrentView} 
+                    setSelectedMatchId={setSelectedMatchId} 
+                />
+            );
+
         // NEW: Match view case
         case 'match':
             return selectedMatchId ? (

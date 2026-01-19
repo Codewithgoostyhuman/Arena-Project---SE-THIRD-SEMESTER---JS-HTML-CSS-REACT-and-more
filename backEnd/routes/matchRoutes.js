@@ -16,7 +16,7 @@ import {
   spectateMatch
 } from "../controllers/matchController.js";
 
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -80,7 +80,6 @@ router.get(
 
 router.get(
   "/:id/state",
-  authenticate,
   getMatchState
 );
 

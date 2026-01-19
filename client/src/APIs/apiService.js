@@ -198,6 +198,8 @@ export const apiService = {
         getLiveTournaments: () => apiService.request('/public/tournaments/live'),
         getUpcomingTournaments: () => apiService.request('/public/tournaments/upcoming'),
         getLiveMatches: () => apiService.request('/public/matches/live'),
+        getMatchDetails: (id) => apiService.request(`/public/matches/${id}`),
+        getMatchState: (id) => apiService.request(`/public/matches/${id}/state`),
         getAllGames: () => apiService.request('/public/games'),
     },
 

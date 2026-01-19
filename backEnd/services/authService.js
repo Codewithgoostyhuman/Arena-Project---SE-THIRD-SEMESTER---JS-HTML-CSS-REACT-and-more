@@ -34,7 +34,7 @@ export default class AuthService {
       email,
       password,
       role,
-      status: role === "operator" ? "active" : "pending" // Operators are auto-active
+      status: "pending" // All users require operator approval
     });
 
     await user.save();

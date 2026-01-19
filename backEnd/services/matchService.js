@@ -332,6 +332,11 @@ class MatchGameService {
     if (match.status === 'live' && !match.currentGameState) {
       console.log('⚠️ Match is live but missing game state - initializing now');
       
+      if (!match.game) {
+        console.error('❌ Cannot initialize match state: match.game is NULL', { matchId });
+        throw new Error('Match game configuration is missing');
+      }
+
       try {
         const gameState = this._initializeGameState(match.game.type, match.players);
         
@@ -432,6 +437,14 @@ class MatchGameService {
       winner: match.winner,
       isFinals: match.isFinals
     };
+    
+    console.log('Returning match state:', {
+      hasGame: !!result.game,
+      gameId: result.game?._id,
+      gameType: result.game?.type
+    });
+    
+    return result;
   }
   
   /**

@@ -1,7 +1,7 @@
 // routes/advertisementRoutes.js
 import express from "express";
 import * as advertisementController from "../controllers/advertisementController.js";
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 import multer from "multer";
 import path from "path";
 

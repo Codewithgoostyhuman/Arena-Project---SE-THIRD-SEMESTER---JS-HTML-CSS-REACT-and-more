@@ -1,7 +1,7 @@
 // backend/routes/userRoutes.js
 import express from "express";
 import * as userController from "../controllers/userController.js";
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 
 const router = express.Router();
 

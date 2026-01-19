@@ -1,6 +1,6 @@
 import express from "express";
 import * as advertiserController from "../controllers/advertiserController.js";
-import { authenticate, authorizeRoles, Roles } from "../middleWare/auth.js";
+import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 import advertiserService from "../services/advertiserService.js";
 
 const router = express.Router();

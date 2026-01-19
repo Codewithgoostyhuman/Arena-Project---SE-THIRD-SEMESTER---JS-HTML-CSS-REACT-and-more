@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 import { apiService } from '../../APIs/apiService';
 import MatchCard from '../reuseableComponents/MatchCard';
-export default function LiveMatchesView() {
+export default function LiveMatchesView({ setCurrentView, setSelectedMatchId }) {
     const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -37,7 +37,12 @@ export default function LiveMatchesView() {
             ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {matches.map(match => (
-                        <MatchCard key={match._id} match={match} />
+                        <MatchCard 
+                            key={match._id} 
+                            match={match} 
+                            setCurrentView={setCurrentView}
+                            setSelectedMatchId={setSelectedMatchId}
+                        />
                     ))}
                 </div>
             )}
