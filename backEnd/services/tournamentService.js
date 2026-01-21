@@ -206,7 +206,7 @@ class TournamentService {
       applicationEndDate,
       playStartDate,
       playEndDate,
-      status: 'planning'
+      status: 'open_for_applications'
     });
 
     await tournament.save();
@@ -278,7 +278,8 @@ class TournamentService {
   }
 
   async recordMatchResult(tournamentId, matchId, winnerId, isDraw) {
-    return await Tournament.recordMatchResult(tournamentId, matchId, winnerId, isDraw);
+    // Delegate to match service to ensure stats are updated correctly
+    return await matchGameService.resolveMatch(matchId, winnerId, isDraw);
   }
 
   async startTournament(tournamentId) {
@@ -389,38 +390,8 @@ class TournamentService {
       }
     });
 
-    const league = await LeagueModel.findById(tournament.league._id).populate("ratingFormula");
-    const formula = league.ratingFormula;
-
-    for (const match of tournament.matches) {
-      const matchDoc = await MatchModel.findById(match._id);
-      
-      if (matchDoc.winner) {
-        await User.findByIdAndUpdate(matchDoc.winner, {
-          $inc: {
-            "stats.wins": 1,
-            "stats.points": formula.winnerScore
-          }
-        });
-
-        const loser = matchDoc.players.find(p => p.toString() !== matchDoc.winner.toString());
-        await User.findByIdAndUpdate(loser, {
-          $inc: {
-            "stats.losses": 1,
-            "stats.points": formula.loserScore
-          }
-        });
-      } else if (matchDoc.status === "finished") {
-        matchDoc.players.forEach(async playerId => {
-          await User.findByIdAndUpdate(playerId, {
-            $inc: {
-              "stats.draws": 1,
-              "stats.points": formula.drawScore
-            }
-          });
-        });
-      }
-    }
+    // Stats are already updated per-match in matchService.
+    // We only need to set the winner and status.
 
     tournament.status = "finished";
     tournament.winners = [winnerId];

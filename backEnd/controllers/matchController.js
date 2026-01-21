@@ -1,6 +1,7 @@
 import League from "../schemas/LeagueSchema.js";
 import Match from '../schemas/MatchSchema.js';
 import matchGameService from "../services/matchService.js";
+import mongoose from "mongoose";
 
 // Utility to check if the user owns the league or is admin
 const verifyLeagueOwnership = async (userId, matchId) => {
@@ -371,4 +372,83 @@ export const spectateMatch = async (req, res) => {
     console.error('Error spectating match:', error);
     res.status(500).json({ message: 'Error spectating match', error: error.message });
   }
-};  
+}
+/**
+ * Get ads for a match based on sponsorship
+ * GET /api/matches/:id/ads
+ */
+export const getMatchAds = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 1. Fetch Match with Tournament details
+    const match = await Match.findById(id).populate({
+      path: 'tournament',
+      select: 'name' // We'll need to fetch more specific sponsorship details from Advertiser later
+    });
+
+    if (!match) {
+      return res.status(404).json({ message: 'Match not found' });
+    }
+
+    if (!match.tournament) {
+      // If not part of a tournament, return generic/random ads
+      const randomAds = await fetchRandomAds();
+      return res.json(randomAds);
+    }
+
+    // 2. Check for Exclusive Sponsor for this Tournament
+    // We need to query Advertisers who have this tournament in 'sponsoredTournaments' with type 'exclusive'
+    // Import Advertiser dynamically or use mongoose.model if circular dependency is an issue
+    const Advertiser = mongoose.model('Advertiser'); // Ensure Advertiser is registered
+
+    const exclusiveSponsor = await Advertiser.findOne({
+      'sponsoredTournaments': {
+        $elemMatch: {
+          tournament: match.tournament._id,
+          type: 'exclusive'
+        }
+      }
+    });
+
+    if (exclusiveSponsor) {
+      // 3. Return ONLY this sponsor's ads
+      // Filter ads to either general ones or specific to this tournament if we had that granularity
+      // For now, return all ads from this exclusive sponsor
+      const sponsorAds = exclusiveSponsor.ads || [];
+      return res.json(sponsorAds);
+    }
+
+    // 4. If No Exclusive Sponsor, fetch Generic Ads from all active advertisers
+    // Logic: fetch all ads, shuffle, return subset
+    // Optimization: In real app, use weighted random based on bid
+    const randomAds = await fetchRandomAds();
+    res.json(randomAds);
+
+  } catch (error) {
+    console.error('Error fetching match ads:', error);
+    res.status(500).json({ message: 'Error fetching ads', error: error.message });
+  }
+};
+
+// Helper to fetch random ads
+const fetchRandomAds = async (limit = 3) => {
+  const Advertiser = mongoose.model('Advertiser');
+  
+  // Aggregate to get random ads
+  const randomAds = await Advertiser.aggregate([
+    { $match: { 'ads.0': { $exists: true } } }, // Only advertisers with ads
+    { $unwind: '$ads' }, // Deconstruct ads array
+    { $sample: { size: limit } }, // Randomly select
+    { $project: { // Format output
+      _id: '$ads._id',
+      title: '$ads.title',
+      content: '$ads.content',
+      type: '$ads.type',
+      companyName: '$companyName',
+      advertiserId: '$_id'
+    }}
+  ]);
+  
+  return randomAds;
+};

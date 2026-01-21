@@ -112,8 +112,8 @@ export default class AdvertiserDomain {
     const advertiser = await Advertiser.findById(advertiserId);
     if (!advertiser) throw new Error("Advertiser not found");
     
-    if (!advertiser.leagues.includes(leagueId)) {
-      advertiser.leagues.push(leagueId);
+    if (!advertiser.leaguesOfInterest.includes(leagueId)) {
+      advertiser.leaguesOfInterest.push(leagueId);
       await advertiser.save();
     }
     
@@ -124,7 +124,7 @@ export default class AdvertiserDomain {
     const advertiser = await Advertiser.findById(advertiserId);
     if (!advertiser) throw new Error("Advertiser not found");
     
-    advertiser.leagues = advertiser.leagues.filter(
+    advertiser.leaguesOfInterest = advertiser.leaguesOfInterest.filter(
       l => l.toString() !== leagueId.toString()
     );
     await advertiser.save();
@@ -141,8 +141,8 @@ export default class AdvertiserDomain {
     if (!advertiser) throw new Error("Advertiser not found");
 
     advertiser.sponsorshipRequests.push({ 
-      tournamentId, 
-      leagueId, 
+      tournament: tournamentId, 
+      league: leagueId, 
       proposedAmount, 
       status: "pending" 
     });
@@ -173,7 +173,7 @@ export default class AdvertiserDomain {
     if (!advertiser) throw new Error("Advertiser not found");
 
     advertiser.sponsoredTournaments.push({ 
-      tournamentId, 
+      tournament: tournamentId, 
       sponsorshipAmount, 
       sponsorshipType 
     });
@@ -187,7 +187,7 @@ export default class AdvertiserDomain {
     if (!advertiser) throw new Error("Advertiser not found");
 
     advertiser.sponsoredTournaments = advertiser.sponsoredTournaments.filter(
-      t => t.tournamentId.toString() !== tournamentId.toString()
+      t => t.tournament.toString() !== tournamentId.toString()
     );
     await advertiser.save();
     
@@ -215,9 +215,9 @@ export default class AdvertiserDomain {
   static async getDashboard(advertiserId) {
     const advertiser = await Advertiser.findById(advertiserId)
       .populate('user', '-password')
-      .populate('leagues')
-      .populate('sponsoredTournaments.tournamentId')
-      .populate('sponsorshipRequests.tournamentId');
+      .populate('leaguesOfInterest')
+      .populate('sponsoredTournaments.tournament')
+      .populate('sponsorshipRequests.tournament');
     
     if (!advertiser) throw new Error("Advertiser not found");
 
@@ -243,12 +243,64 @@ export default class AdvertiserDomain {
       0
     );
     
-    const balance = totalCost - advertiser.payments;
+    const balance = (advertiser.payments || 0) + (advertiser.initialBalance || 0) - totalCost; // Assuming logic: payments + initial - cost
+    // Checking schema: payments is just a number. Let's assume payments = total funds added.
+    // Wait, the previous logic was: totalCost - payments. That implies payments are what they OWE? 
+    // Usually 'payments' in an advertiser context effectively means 'funds added' (prepaid) or 'bills paid'.
+    // Given the context of "Add Funds", it sounds like a prepaid balance system.
+    // So Balance = (Total Funds Added) - (Total Ad Spend).
+    // Let's check Schema... 
+    // Schema has 'payments': { type: Number, default: 0 }. 
+    // And 'account': ref to Account.
+    // If we are simulating a balance, let's assume 'payments' tracks total money put IN.
+    // And 'ads' have costs.
+    // So Balance = payments - totalCost.
     
     return { 
       advertiser: advertiser.toJSON(), 
-      balance 
+      balance: (advertiser.payments || 0) - totalCost
     };
+  }
+
+  /* ===============================
+     ADS & FUNDS MANAGEMENT
+  =============================== */
+
+  static async addFunds(advertiserId, amount) {
+    const advertiser = await Advertiser.findById(advertiserId);
+    if (!advertiser) throw new Error("Advertiser not found");
+
+    if (amount <= 0) throw new Error("Amount must be positive");
+
+    advertiser.payments = (advertiser.payments || 0) + Number(amount);
+    await advertiser.save();
+
+    return this.getBalance(advertiserId);
+  }
+
+  static async uploadAd(advertiserId, adData) {
+    const advertiser = await Advertiser.findById(advertiserId);
+    if (!advertiser) throw new Error("Advertiser not found");
+
+    const newAd = {
+      title: adData.title,
+      content: adData.content,
+      tournament: adData.tournamentId, // Optional
+      type: adData.type || 'impression',
+      fee: adData.fee || 0,
+      createdAt: new Date()
+    };
+
+    advertiser.ads.push(newAd);
+    await advertiser.save();
+
+    return advertiser.ads[advertiser.ads.length - 1]; // Return the created ad
+  }
+
+  static async getAds(advertiserId) {
+    const advertiser = await Advertiser.findById(advertiserId).populate('ads.tournament');
+    if (!advertiser) throw new Error("Advertiser not found");
+    return advertiser.ads;
   }
 
   /* ===============================

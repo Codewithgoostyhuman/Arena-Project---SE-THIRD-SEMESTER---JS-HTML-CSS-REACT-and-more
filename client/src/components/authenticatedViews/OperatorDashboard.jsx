@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, Clock, Shield, Users, TrendingUp } from 'lucide-react';
+import { GameController, Clock, ShieldCheck, UsersThree, TrendUp } from '@phosphor-icons/react';
 import StatsCard from '../reuseableComponents/StatsCard';
 // Main Operator Dashboard Component
 export default function OperatorDashboard() {
@@ -75,31 +75,31 @@ export default function OperatorDashboard() {
                 <StatsCard
                     title="Pending Users"
                     value={stats.pendingUsers}
-                    icon={<Clock className="h-8 w-8 text-yellow-600" />}
+                    icon={<Clock className="h-8 w-8 text-yellow-600" weight="duotone" />}
                     loading={loading}
                 />
                 <StatsCard
                     title="Total Games"
                     value={stats.totalGames}
-                    icon={<Gamepad2 className="h-8 w-8 text-blue-600" />}
+                    icon={<GameController className="h-8 w-8 text-blue-600" weight="duotone" />}
                     loading={loading}
                 />
                 <StatsCard
                     title="Active Leagues"
                     value={stats.activeLeagues}
-                    icon={<Shield className="h-8 w-8 text-indigo-600" />}
+                    icon={<ShieldCheck className="h-8 w-8 text-indigo-600" weight="duotone" />}
                     loading={loading}
                 />
                 <StatsCard
                     title="Total Users"
                     value={stats.totalUsers}
-                    icon={<Users className="h-8 w-8 text-green-600" />}
+                    icon={<UsersThree className="h-8 w-8 text-green-600" weight="duotone" />}
                     loading={loading}
                 />
                 <StatsCard
                     title="Active Users"
                     value={stats.activeUsers}
-                    icon={<TrendingUp className="h-8 w-8 text-purple-600" />}
+                    icon={<TrendUp className="h-8 w-8 text-purple-600" weight="duotone" />}
                     loading={loading}
                 />
             </div>

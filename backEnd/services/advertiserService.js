@@ -109,6 +109,21 @@ class AdvertiserService {
   async getBalance(id) {
     return await AdvertiserDomain.getBalance(id);
   }
+
+  // Add funds to advertiser account
+  async addFunds(id, amount) {
+    return await AdvertiserDomain.addFunds(id, amount);
+  }
+
+  // Upload a new advertisement
+  async uploadAd(id, adData) {
+    return await AdvertiserDomain.uploadAd(id, adData);
+  }
+
+  // Get all ads for an advertiser
+  async getAds(id) {
+    return await AdvertiserDomain.getAds(id);
+  }
 }
 
 export default new AdvertiserService();

@@ -1,72 +1,50 @@
 // client/src/components/authenticatedViews/MatchView.jsx
 import { useState, useEffect } from 'react';
+import { ArrowLeft, Trophy, Monitor, CheckCircle, ChatCircleText } from '@phosphor-icons/react';
 import { useAuth } from '../../Auth/AuthContext';
 import { apiService } from '../../APIs/apiService';
 import TicTacToeBoard from '../../GameComponents/TicTacToeBoard';
 import RPS from '../../GameComponents/RPS';
 import NumberGuessDuelUI from '../../GameComponents/NumberGuessDuelUI';
 import LoadingScreen from '../reuseableComponents/LoadingScreen';
+import {useMatchSocket} from '../../../hooks/UseSocket';
+import MatchChat from './MatchChat'; 
+import MatchAdDisplay from './MatchAdDisplay';
 
 const MatchView = ({ matchId, setCurrentView }) => {
-   const { currentUser } = useAuth();
-  const [match, setMatch] = useState(null);
+  const { currentUser } = useAuth();
+  const [initialMatchData, setInitialMatchData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Initialize Socket Hook
+  const { 
+    matchState, 
+    isInMatch, 
+    makeMove, 
+    sendChatMessage, 
+    setPlayerReady, 
+    isConnected,
+    error: socketError
+  } = useMatchSocket(matchId);
+
   useEffect(() => {
     if (matchId) {
-      fetchMatchData();
+      fetchInitialMatchData();
     }
   }, [matchId]);
 
-  useEffect(() => {
-    if (match) {
-      console.log('Match View Updated State:', {
-        id: match._id,
-        status: match.status,
-        hasGame: !!match.game,
-        gameType: match.game?.type,
-        currentTurn: match.currentTurn,
-        hasGameState: !!match.currentGameState
-      });
-      
-      // Auto-fetch state if match is live but state is missing
-      if (match.status === 'live' && !match.currentGameState && !loading) {
-         console.log('Match is live but missing state - triggering state fetch');
-         fetchMatchData();
-      }
-    }
-  }, [match]);
-
-  const fetchMatchData = async () => {
+  const fetchInitialMatchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching match data for:', matchId);
-      
-      let data;
-      // ALWAYS try to get state for live matches to ensure initialization
-      // But first get the basic match info to know the status
+      // We still fetch initial data to get static info like game type, players, etc.
+      // independent of the socket state
       const initialMatch = await (currentUser 
         ? apiService.matches.getById(matchId) 
         : apiService.public.getMatchDetails(matchId));
       
       const matchObj = initialMatch.match || initialMatch;
-      console.log('Initial match status:', matchObj.status);
-
-      if (matchObj.status === 'live') {
-        console.log('Match is live, fetching full state...');
-        data = await (currentUser 
-          ? apiService.matches.getState(matchId) 
-          : apiService.public.getMatchState(matchId));
-      } else {
-        data = matchObj;
-      }
-      
-      console.log('Final match data for state:', data);
-      
-      // Merge results if necessary (getState might return different structure)
-      const finalMatch = (data._id || data.matchId) ? data : matchObj;
-      setMatch(finalMatch);
+      setInitialMatchData(matchObj);
       setError(null);
     } catch (err) {
       console.error('Error fetching match:', err);
@@ -78,10 +56,8 @@ const MatchView = ({ matchId, setCurrentView }) => {
 
   const handleStartMatch = async () => {
     try {
-      console.log('Starting match:', matchId);
       await apiService.matches.start(matchId);
-      console.log('Match started successfully');
-      fetchMatchData();
+      // Socket will automatically pick up the status change
     } catch (err) {
       console.error('Error starting match:', err);
       setError(err.message || 'Failed to start match');
@@ -89,30 +65,31 @@ const MatchView = ({ matchId, setCurrentView }) => {
   };
 
   const handleBackButton = () => {
-    console.log('Navigating back');
     setCurrentView(currentUser ? 'dashboard' : 'live');
   };
 
   const renderGameComponent = () => {
     // Robust checks
-    if (!match) return null;
+    if (!initialMatchData) return null;
     
-    if (!match.game && !match.gameType) {
-       console.warn('Match object exists but game data is missing:', match);
-       return <div className="text-yellow-500 p-4 bg-yellow-500/10 rounded">Game configuration is missing for this match.</div>;
-    }
+    // Merge socket state with initial data, preferring socket state for dynamic fields
+    const currentMatch = {
+      ...initialMatchData,
+      ...(matchState || {})
+    };
 
-    const gameType = match.game?.type || match.gameType;
+    const gameType = currentMatch.game?.type || currentMatch.gameType;
     if (!gameType) {
-      console.warn('Game object exists but type is missing');
-      return <div className="text-yellow-500 p-4 bg-yellow-500/10 rounded">Cannot determine game type.</div>;
+      return <div className="text-yellow-500 p-4 bg-yellow-500/10 rounded">Game configuration is missing.</div>;
     }
 
-    console.log('Rendering game component for type:', gameType);
-    
-    // Ensure we have a match object to pass to children if needed
-    // Some children might expect matchId or other props
-    const props = { matchId, onMatchUpdate: fetchMatchData };
+    // Pass socket functions and state to children
+    const props = { 
+      matchId, 
+      match: currentMatch, // Pass the full merged match object
+      makeMove,
+      isConnected
+    };
 
     switch (gameType) {
       case 'TicTacToe':
@@ -128,13 +105,11 @@ const MatchView = ({ matchId, setCurrentView }) => {
         return <div className="text-white p-4">Game type not supported: {gameType}</div>;
     }
   };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <LoadingScreen />
-          <p className="text-white mt-4">Loading match...</p>
-        </div>
+        <LoadingScreen />
       </div>
     );
   }
@@ -145,131 +120,188 @@ const MatchView = ({ matchId, setCurrentView }) => {
         <div className="bg-red-500/10 border border-red-500 rounded-lg p-6 max-w-md w-full">
           <h2 className="text-xl font-bold text-red-500 mb-2">Error Loading Match</h2>
           <p className="text-red-400 mb-4">{error}</p>
-          <div className="space-y-2">
-            <button
-              onClick={fetchMatchData}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition"
-            >
-              Retry
-            </button>
-            <button
-              onClick={handleBackButton}
-              className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition"
-            >
-              {currentUser ? 'Back to Dashboard' : 'Back to Live Matches'}
-            </button>
-          </div>
+          <button onClick={fetchInitialMatchData} className="w-full bg-red-600 text-white py-2 rounded-lg">Retry</button>
+          <button onClick={handleBackButton} className="w-full mt-2 bg-gray-600 text-white py-2 rounded-lg">Back</button>
         </div>
       </div>
     );
   }
 
-  if (!match) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl text-white mb-4">Match not found</div>
-          <button
-            onClick={handleBackButton}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
-          >
-            {currentUser ? 'Back to Dashboard' : 'Back to Live Matches'}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Combine data for the view
+  const displayMatch = {
+    ...initialMatchData,
+    ...(matchState || {}) 
+  };
+  
+  if (!displayMatch) return <div>Match not found</div>;
 
-  const isPlayer = match.players?.some(p => p._id === currentUser?._id);
+  const isPlayer = displayMatch.players?.some(p => p._id === currentUser?._id);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        
-        {/* Back Button */}
-        <button
-          onClick={handleBackButton}
-          className="mb-4 flex items-center text-gray-400 hover:text-white transition"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          {currentUser ? 'Back to Dashboard' : 'Back to Live Matches'}
-        </button>
+    <div className="min-h-screen bg-slate-900 text-white relative overflow-hidden">
+        {/* Background Grid Pattern */}
+        <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" 
+            style={{ 
+                backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)', 
+                backgroundSize: '40px 40px' 
+            }}
+        />
+        <div className="fixed top-20 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="fixed bottom-20 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-        {/* Match Header */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">{match.game?.name || 'Match'}</h1>
-              {match.tournament && (
-                <p className="text-gray-400">
-                  {match.tournament.name} - Round {match.round}
-                  {match.isFinals && ' - Finals'}
-                </p>
-              )}
-            </div>
-            
-            <div className={`px-4 py-2 rounded-lg font-semibold ${
-              match.status === 'live' ? 'bg-green-500' :
-              match.status === 'finished' ? 'bg-blue-500' :
-              'bg-yellow-500'
-            }`}>
-              {match.status?.toUpperCase() || 'PENDING'}
-            </div>
-          </div>
-
-          {/* Players */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {match.players?.map((player) => (
-              <div key={player._id} className="bg-gray-700 rounded-lg p-4">
-                <div className="font-semibold text-lg">{player.name}</div>
-                <div className="text-gray-400 text-sm">
-                  {player.stats?.wins || 0}W - {player.stats?.losses || 0}L
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-indigo-500/30">
+                 <div>
+                    <button 
+                        onClick={handleBackButton} 
+                        className="flex items-center text-slate-400 hover:text-white transition-colors mb-2 group"
+                    >
+                        <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+                        Back to Dashboard
+                    </button>
+                    <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        {displayMatch.game?.name || 'Match'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Lobby</span>
+                    </h1>
+                    <p className="text-slate-400 font-mono text-sm tracking-wider mt-1">ID: {matchId}</p>
                 </div>
-                {match.status === 'finished' && match.winner?._id === player._id && (
-                  <div className="text-green-400 font-bold mt-2">WINNER 🏆</div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Score (for best of X) */}
-          {match.bestOf > 1 && (
-            <div className="flex justify-center gap-4 text-2xl font-bold">
-              <span>{match.score?.player1 || 0}</span>
-              <span className="text-gray-400">-</span>
-              <span>{match.score?.player2 || 0}</span>
-              <span className="text-gray-400 text-sm ml-2">
-                (Best of {match.bestOf})
-              </span>
+                
+                <div className={`self-start md:self-center px-4 py-2 rounded-full border flex items-center gap-2 ${
+                    displayMatch.status === 'finished' ? 'bg-green-500/10 border-green-500 text-green-400' :
+                    displayMatch.status === 'live' ? 'bg-red-500/10 border-red-500 text-red-400 animate-pulse' :
+                    'bg-slate-700/50 border-slate-600 text-slate-300'
+                }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                         displayMatch.status === 'finished' ? 'bg-green-500' :
+                         displayMatch.status === 'live' ? 'bg-red-500' :
+                         'bg-slate-400'
+                    }`}></div>
+                    <span className="font-bold uppercase text-sm tracking-wider">{displayMatch.status?.replace('_', ' ') || 'UNKNOWN'}</span>
+                </div>
             </div>
-          )}
 
-          {/* Start Match Button */}
-          {match.status === 'ready' && isPlayer && (
-            <button
-              onClick={handleStartMatch}
-              className="w-full mt-4 bg-green-600 hover:bg-green-700 py-3 rounded-lg font-semibold text-lg transition"
-            >
-              Start Match
-            </button>
-          )}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Match Details & Game Area */}
+                <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* VS Banner */}
+                    <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 p-8 overflow-hidden group">
+                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-transparent to-red-500/10 opacity-50"></div>
+                         
+                        <div className="relative z-10 flex flex-col md:flex-row items-center justify-around gap-8">
+                            {/* Player 1 */}
+                            <div className="text-center group/p1">
+                                <div className={`w-24 h-24 mx-auto bg-slate-800 rounded-full border-4 flex items-center justify-center mb-4 transition-transform shadow-xl ${displayMatch.currentTurn === displayMatch.players?.[0]?._id ? 'border-indigo-500 scale-110 shadow-indigo-500/50' : 'border-slate-600'}`}>
+                                    <Trophy className={`w-10 h-10 ${displayMatch.currentTurn === displayMatch.players?.[0]?._id ? 'text-indigo-400' : 'text-slate-500'}`} weight="duotone" />
+                                </div>
+                                <h2 className="text-xl font-black text-white uppercase tracking-wider">{displayMatch.players?.[0]?.name || 'Waiting...'}</h2>
+                                <p className="text-indigo-400 font-bold text-sm">Player 1</p>
+                                 {displayMatch.winner === displayMatch.players?.[0]?._id && (
+                                    <div className="mt-2 inline-block px-3 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 rounded-full text-xs font-bold uppercase tracking-widest">
+                                        Winner
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* VS Divider */}
+                            <div className="flex flex-col items-center">
+                                <div className="text-4xl font-black text-white italic opacity-50">VS</div>
+                            </div>
+
+                            {/* Player 2 */}
+                            <div className="text-center group/p2">
+                                 <div className={`w-24 h-24 mx-auto bg-slate-800 rounded-full border-4 flex items-center justify-center mb-4 transition-transform shadow-xl ${displayMatch.currentTurn === displayMatch.players?.[1]?._id ? 'border-red-500 scale-110 shadow-red-500/50' : 'border-slate-600'}`}>
+                                    <Trophy className={`w-10 h-10 ${displayMatch.currentTurn === displayMatch.players?.[1]?._id ? 'text-red-400' : 'text-slate-500'}`} weight="duotone" />
+                                </div>
+                                <h2 className="text-xl font-black text-white uppercase tracking-wider">{displayMatch.players?.[1]?.name || 'Waiting...'}</h2>
+                                <p className="text-red-400 font-bold text-sm">Player 2</p>
+                                {displayMatch.winner === displayMatch.players?.[1]?._id && (
+                                    <div className="mt-2 inline-block px-3 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 rounded-full text-xs font-bold uppercase tracking-widest">
+                                        Winner
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Game Component Container */}
+                    <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 p-1 min-h-[400px] flex flex-col relative overflow-hidden">
+                        {/* Decorative Corner Accents */}
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-indigo-500 rounded-tl-lg"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-indigo-500 rounded-tr-lg"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-indigo-500 rounded-bl-lg"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-indigo-500 rounded-br-lg"></div>
+
+                        {/* Start Match Button Overlay */}
+                        {displayMatch.status === 'ready' && isPlayer && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+                                <div className="text-center">
+                                    <h3 className="text-2xl font-bold text-white mb-4">You are ready?</h3>
+                                    <button
+                                        onClick={handleStartMatch}
+                                        className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-black text-xl rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all transform hover:scale-105 border border-green-400/50"
+                                    >
+                                        START MATCH
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex-1 p-6">
+                           {renderGameComponent()}
+                        </div>
+                    </div>
+
+                    {/* Banner Ads Section */}
+                    <div className="mt-8">
+                        <MatchAdDisplay matchId={matchId} placement="banner" />
+                    </div>
+                </div>
+
+                {/* Right Column: Chat & Sidebar Ads */}
+                <div className="space-y-6">
+                    
+                     {/* Connection Status Indicator */}
+                     {!isConnected && (
+                        <div className="bg-orange-500/20 text-orange-400 px-4 py-3 rounded-xl border border-orange-500/30 flex items-center justify-between animate-pulse">
+                            <div className="flex items-center font-bold">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                                <span>Disconnected</span>
+                            </div>
+                            <div className="text-xs text-orange-300">
+                               Reconnecting...
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Chat Window */}
+                    <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 overflow-hidden shadow-xl h-[600px] flex flex-col">
+                        <div className="p-4 border-b border-slate-700 bg-slate-900/50 flex items-center justify-between">
+                            <h3 className="font-bold text-white flex items-center">
+                                <ChatCircleText className="w-5 h-5 mr-2 text-indigo-400" weight="duotone" />
+                                Live Chat
+                            </h3>
+                            <div className="flex items-center text-xs text-green-400">
+                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                Online
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-hidden bg-slate-900/30">
+                            <MatchChat 
+                                matchId={matchId} 
+                                sendMessage={sendChatMessage}
+                                currentUser={currentUser}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Sidebar Ad (Square) */}
+                    <div className="bg-slate-800/30 rounded-2xl border border-slate-700 p-4 flex justify-center">
+                         <MatchAdDisplay matchId={matchId} placement="sidebar" />
+                    </div>
+                </div>
+            </div>
         </div>
-
-        {/* Game Component */}
-        {match.status === 'live' || match.status === 'finished' ? (
-          <div className="bg-gray-800 rounded-lg p-6">
-            {renderGameComponent()}
-          </div>
-        ) : (
-          <div className="bg-gray-800 rounded-lg p-12 text-center">
-            <div className="text-2xl text-gray-400">
-              {match.status === 'pending' ? 'Waiting for both players...' : 'Match not started yet'}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

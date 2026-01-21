@@ -12,15 +12,18 @@ import CreateTournamentView from './CreateTournamentView';
 import MyTournamentsView from './MyTournamentsView';
 import ApplicationsView from './LeagueOwnerApplicationView';
 import LiveMatchesView from '../publicViews/LiveMatchesView';
-import MatchView from './MatchView'; // NEW: Import MatchView
+import MatchView from './MatchView';
+import TournamentBracketView from './TournamentBracketView'; // NEW: Import TournamentBracketView
 
 export default function AuthenticatedViews({ 
     currentView, 
     setCurrentView,
     setSelectedLeagueId,
     selectedLeagueId,
-    selectedMatchId, // NEW: Receive match ID
-    setSelectedMatchId // NEW: Receive setter
+    selectedMatchId, 
+    setSelectedMatchId,
+    selectedTournamentId, // NEW: Receive tournament ID
+    setSelectedTournamentId // NEW: Receive setter
 }) {
     const { currentUser } = useAuth();
 
@@ -30,7 +33,11 @@ export default function AuthenticatedViews({
         
         case 'tournaments':
             return currentUser.role === 'player' ? (
-                <PlayerTournamentsView setCurrentView={setCurrentView} setSelectedMatchId={setSelectedMatchId} />
+                <PlayerTournamentsView 
+                    setCurrentView={setCurrentView} 
+                    setSelectedMatchId={setSelectedMatchId}
+                    setSelectedTournamentId={setSelectedTournamentId} // Pass setter to allow navigation
+                />
             ) : null;
         
         case 'leagues':
@@ -43,7 +50,8 @@ export default function AuthenticatedViews({
                 <LeagueOwnerView 
                     setCurrentView={setCurrentView} 
                     setSelectedLeagueId={setSelectedLeagueId}
-                    setSelectedMatchId={setSelectedMatchId} // NEW: Pass to league view
+                    setSelectedMatchId={setSelectedMatchId}
+                    setSelectedTournamentId={setSelectedTournamentId}
                 />
             ) : null;
         
@@ -73,7 +81,8 @@ export default function AuthenticatedViews({
             return currentUser.role === 'leagueOwner' ? (
                 <MyTournamentsView 
                     setCurrentView={setCurrentView}
-                    setSelectedMatchId={setSelectedMatchId} // NEW: Pass to tournaments view
+                    setSelectedMatchId={setSelectedMatchId}
+                    setSelectedTournamentId={setSelectedTournamentId}
                 />
             ) : null;
         
@@ -90,12 +99,23 @@ export default function AuthenticatedViews({
                 />
             );
 
-        // NEW: Match view case
         case 'match':
             return selectedMatchId ? (
                 <MatchView 
                     matchId={selectedMatchId}
                     setCurrentView={setCurrentView}
+                />
+            ) : (
+                <DashboardView setCurrentView={setCurrentView} />
+            );
+
+        // NEW: Tournament bracket view case
+        case 'tournament-bracket':
+            return selectedTournamentId ? (
+                <TournamentBracketView 
+                    tournamentId={selectedTournamentId}
+                    setCurrentView={setCurrentView}
+                    setSelectedMatchId={setSelectedMatchId}
                 />
             ) : (
                 <DashboardView setCurrentView={setCurrentView} />

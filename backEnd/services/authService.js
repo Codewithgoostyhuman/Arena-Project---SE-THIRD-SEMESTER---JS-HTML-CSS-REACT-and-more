@@ -1,4 +1,5 @@
 import User from "../schemas/UserSchema.js";
+import Advertiser from "../schemas/AdvertiserSchema.js";
 import { generateToken } from "../utils/jwt.js";
 
 export default class AuthService {
@@ -7,7 +8,7 @@ export default class AuthService {
    * @param {Object} userData - User registration data
    * @returns {Object} - Created user and token
    */
-  static async register({ name, email, password, role = "player" }) {
+  static async register({ name, email, password, role = "player", companyName }) {
     // Check if user already exists
     const existingUser = await User.findOne({ 
       $or: [{ email }, { name: name }] // Changed: query by 'name' field but compare with 'username' param
@@ -34,10 +35,24 @@ export default class AuthService {
       email,
       password,
       role,
-      status: "pending" // All users require operator approval
+      status: role === "operator" ? "active" : "pending" // Operators are auto-active
     });
 
     await user.save();
+
+    // Create Advertiser Profile if role is advertiser
+    if (role === "advertiser") {
+      const advertiserProfile = new Advertiser({
+        user: user._id,
+        companyName: companyName || name, // Use provided company name or fallback to user name
+        payments: 0,
+        ads: []
+      });
+      await advertiserProfile.save();
+      
+      user.advertiserProfile = advertiserProfile._id;
+      await user.save();
+    }
 
     // Don't generate token for pending users
     if (user.status === "pending") {

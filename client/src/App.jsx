@@ -5,11 +5,17 @@ import Navigation from './components/navigation/Navigation';
 import PublicViews from './components/publicViews/PublicView';
 import AuthenticatedViews from './components/authenticatedViews/AuthenticatedViews';
 import { AuthProvider } from './Auth/AuthContext';
+import { SocketProvider } from './context/SocketContext';
+import { IconContext } from "@phosphor-icons/react";
 
 export default function ArenaApp() {
     return (
         <AuthProvider>
-            <AppContent />
+            <SocketProvider>
+                <IconContext.Provider value={{ weight: "duotone" }}>
+                    <AppContent />
+                </IconContext.Provider>
+            </SocketProvider>
         </AuthProvider>
     );
 }
@@ -20,15 +26,17 @@ function AppContent() {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [selectedLeagueId, setSelectedLeagueId] = useState(null);
     const [selectedMatchId, setSelectedMatchId] = useState(null);
+    const [selectedTournamentId, setSelectedTournamentId] = useState(null);
 
     // Debug: Log state changes
     useEffect(() => {
         console.log('App State Changed:', {
             currentView,
             selectedMatchId,
+            selectedTournamentId,
             currentUser: currentUser?.name
         });
-    }, [currentView, selectedMatchId, currentUser]);
+    }, [currentView, selectedMatchId, selectedTournamentId, currentUser]);
 
     // Set initial view to dashboard when user logs in
     useEffect(() => {
@@ -43,7 +51,7 @@ function AppContent() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-900">
             <Navigation
                 currentView={currentView}
                 setCurrentView={setCurrentView}
@@ -67,6 +75,8 @@ function AppContent() {
                         setSelectedLeagueId={setSelectedLeagueId}
                         selectedMatchId={selectedMatchId}
                         setSelectedMatchId={setSelectedMatchId}
+                        selectedTournamentId={selectedTournamentId}
+                        setSelectedTournamentId={setSelectedTournamentId}
                     />
                 )}
             </main>

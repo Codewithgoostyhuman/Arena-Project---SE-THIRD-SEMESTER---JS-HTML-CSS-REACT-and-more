@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Calendar, CheckCircle, Clock, XCircle, MapPin, DollarSign } from 'lucide-react';
+import { Trophy, UsersThree, CalendarBlank, CheckCircle, Clock, XCircle, MapPin, CurrencyDollar } from '@phosphor-icons/react';
 import { apiService } from '../../APIs/apiService';
 
 export default function PlayerTournamentsView() {
@@ -95,90 +95,124 @@ export default function PlayerTournamentsView() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+                    <p className="text-indigo-400 font-bold animate-pulse">Loading Arena...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 className="text-4xl font-bold mb-8">Tournaments</h1>
+        <div className="min-h-screen bg-slate-900 text-white relative overflow-hidden pb-12">
+             {/* Background Grid Pattern */}
+            <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" 
+                style={{ 
+                    backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)', 
+                    backgroundSize: '40px 40px' 
+                }}
+            />
+            <div className="fixed top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                    <p className="text-red-800">{error}</p>
-                    <button 
-                        onClick={loadTournaments}
-                        className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                    >
-                        Retry
-                    </button>
-                </div>
-            )}
-
-            {/* Pending Applications */}
-            {myApplications.length > 0 && (
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="mb-12">
-                    <h2 className="text-2xl font-bold mb-4">Pending Applications</h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {myApplications.map(app => (
-                            <ApplicationCard 
-                                key={app._id}
-                                application={app}
-                                onCancel={handleCancelApplication}
-                                loading={actionLoading === app._id}
-                            />
-                        ))}
-                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-4">
+                        Tournament <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Center</span>
+                    </h1>
+                    <p className="text-slate-400 text-lg">Browse available tournaments, manage your applications, and track your active competitions.</p>
                 </div>
-            )}
 
-            {/* My Tournaments */}
-            <div className="mb-12">
-                <h2 className="text-2xl font-bold mb-4">My Tournaments</h2>
-                {myTournaments.length === 0 ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                        <p className="text-gray-600">You haven't joined any tournaments yet</p>
-                        <p className="text-sm text-gray-500 mt-2">Browse available tournaments below to get started</p>
-                    </div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {myTournaments.map(tournament => (
-                            <TournamentCard 
-                                key={tournament._id}
-                                tournament={tournament}
-                                isMember={true}
-                                onLeave={() => handleLeave(tournament._id)}
-                                loading={actionLoading === tournament._id}
-                            />
-                        ))}
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-8 flex items-center justify-between">
+                        <div className="flex items-center text-red-400">
+                             <XCircle className="w-6 h-6 mr-3" />
+                             <p>{error}</p>
+                        </div>
+                        <button 
+                            onClick={loadTournaments}
+                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold transition"
+                        >
+                            Retry
+                        </button>
                     </div>
                 )}
-            </div>
 
-            {/* All Available Tournaments */}
-            <div>
-                <h2 className="text-2xl font-bold mb-4">Available Tournaments</h2>
-                {allTournaments.length === 0 ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                        <p className="text-gray-600">No active tournaments available</p>
-                    </div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allTournaments.map(tournament => (
-                            <TournamentCard 
-                                key={tournament._id}
-                                tournament={tournament}
-                                isMember={isAlreadyMember(tournament._id)}
-                                hasApplied={hasApplied(tournament._id)}
-                                application={getApplication(tournament._id)}
-                                onApply={() => handleApply(tournament._id)}
-                                loading={actionLoading === tournament._id}
-                            />
-                        ))}
+                {/* Pending Applications */}
+                {myApplications.length > 0 && (
+                    <div className="mb-16">
+                        <div className="flex items-center mb-6">
+                            <span className="w-1 h-8 bg-yellow-500 mr-3 rounded-full"></span>
+                            <h2 className="text-2xl font-bold text-white">Pending Applications</h2>
+                        </div>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {myApplications.map(app => (
+                                <ApplicationCard 
+                                    key={app._id}
+                                    application={app}
+                                    onCancel={handleCancelApplication}
+                                    loading={actionLoading === app._id}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
+
+                {/* My Tournaments */}
+                <div className="mb-16">
+                    <div className="flex items-center mb-6">
+                        <span className="w-1 h-8 bg-green-500 mr-3 rounded-full"></span>
+                         <h2 className="text-2xl font-bold text-white">My Active Tournaments</h2>
+                    </div>
+                   
+                    {myTournaments.length === 0 ? (
+                         <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-12 text-center">
+                            <Trophy className="w-16 h-16 text-slate-600 mx-auto mb-4" weight="duotone" />
+                            <p className="text-slate-400 text-lg mb-2">You haven't joined any tournaments yet</p>
+                            <p className="text-slate-500 text-sm">Browse available tournaments below to get started</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {myTournaments.map(tournament => (
+                                <TournamentCard 
+                                    key={tournament._id}
+                                    tournament={tournament}
+                                    isMember={true}
+                                    onLeave={() => handleLeave(tournament._id)}
+                                    loading={actionLoading === tournament._id}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* All Available Tournaments */}
+                <div>
+                    <div className="flex items-center mb-6">
+                        <span className="w-1 h-8 bg-indigo-500 mr-3 rounded-full"></span>
+                        <h2 className="text-2xl font-bold text-white">Available Tournaments</h2>
+                    </div>
+                    {allTournaments.length === 0 ? (
+                        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-12 text-center">
+                             <CalendarBlank className="w-16 h-16 text-slate-600 mx-auto mb-4" weight="duotone" />
+                            <p className="text-slate-400 text-lg">No active tournaments available at the moment.</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {allTournaments.map(tournament => (
+                                <TournamentCard 
+                                    key={tournament._id}
+                                    tournament={tournament}
+                                    isMember={isAlreadyMember(tournament._id)}
+                                    hasApplied={hasApplied(tournament._id)}
+                                    application={getApplication(tournament._id)}
+                                    onApply={() => handleApply(tournament._id)}
+                                    loading={actionLoading === tournament._id}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -187,62 +221,61 @@ export default function PlayerTournamentsView() {
 function TournamentCard({ tournament, isMember, hasApplied, application, onApply, onLeave, loading }) {
     const getStatusColor = (status) => {
         const colors = {
-            upcoming: 'bg-blue-100 text-blue-700',
-            ongoing: 'bg-green-100 text-green-700',
-            completed: 'bg-gray-100 text-gray-700',
-            cancelled: 'bg-red-100 text-red-700',
+            upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            ongoing: 'bg-green-500/20 text-green-400 border-green-500/30',
+            completed: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+            cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
         };
-        return colors[status] || 'bg-gray-100 text-gray-700';
+        return colors[status] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+        <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 p-6 hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:border-indigo-500/50 transition-all duration-300 group">
             <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">{tournament.name}</h3>
-                {isMember && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        Registered
+                <div>
+                     <span className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 border ${getStatusColor(tournament.status)}`}>
+                        {tournament.status}
                     </span>
+                    <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tournament.name}</h3>
+                </div>
+                {isMember && (
+                    <div className="p-2 bg-green-500/20 rounded-full text-green-400">
+                        <CheckCircle className="w-5 h-5" weight="fill" />
+                    </div>
                 )}
             </div>
 
-            {tournament.status && (
-                <span className={`inline-block px-2 py-1 text-xs rounded-full mb-3 ${getStatusColor(tournament.status)}`}>
-                    {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
-                </span>
-            )}
-
-            <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                    <Trophy className="h-4 w-4 mr-2" />
-                    <span>{tournament.game?.name || 'Game'}</span>
+            <div className="space-y-3 mb-6">
+                <div className="flex items-center text-sm text-slate-300">
+                    <Trophy className="h-4 w-4 mr-3 text-yellow-500" weight="duotone" />
+                    <span className="font-bold">{tournament.game?.name || 'Game'}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2" />
+                <div className="flex items-center text-sm text-slate-300">
+                    <UsersThree className="h-4 w-4 mr-3 text-blue-400" weight="duotone" />
                     <span>{tournament.registeredPlayers?.length || 0} / {tournament.maxParticipants || '∞'} Players</span>
                 </div>
                 {tournament.startDate && (
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-sm text-slate-300">
+                        <CalendarBlank className="h-4 w-4 mr-3 text-purple-400" weight="duotone" />
                         <span>{new Date(tournament.startDate).toLocaleDateString()}</span>
                     </div>
                 )}
                 {tournament.location && (
-                    <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-sm text-slate-300">
+                        <MapPin className="h-4 w-4 mr-3 text-red-400" weight="duotone" />
                         <span>{tournament.location}</span>
                     </div>
                 )}
                 {tournament.prizePool && (
-                    <div className="flex items-center text-sm text-gray-600">
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        <span>Prize Pool: ${tournament.prizePool}</span>
+                    <div className="flex items-center text-sm text-slate-300 pt-2 border-t border-slate-700/50 mt-2">
+                        <CurrencyDollar className="h-4 w-4 mr-2 text-green-400" weight="duotone" />
+                        <span className="text-green-400 font-bold">Prize Pool: ${tournament.prizePool}</span>
                     </div>
                 )}
             </div>
 
             {tournament.description && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm text-slate-400 mb-6 line-clamp-2 leading-relaxed">
                     {tournament.description}
                 </p>
             )}
@@ -251,25 +284,25 @@ function TournamentCard({ tournament, isMember, hasApplied, application, onApply
                 <button
                     onClick={onLeave}
                     disabled={loading || tournament.status === 'ongoing'}
-                    className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 rounded-xl text-sm font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-red-500/10"
                 >
-                    {loading ? 'Leaving...' : tournament.status === 'ongoing' ? 'Cannot Leave (Ongoing)' : 'Leave Tournament'}
+                    {loading ? 'Processing...' : tournament.status === 'ongoing' ? 'Ongoing' : 'Leave Tournament'}
                 </button>
             ) : hasApplied ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded">
-                    <Clock className="h-4 w-4" />
-                    <span>Application Pending</span>
+                <div className="w-full px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 rounded-xl flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-sm">
+                    <Clock className="h-4 w-4" weight="bold" />
+                    <span>Pending</span>
                 </div>
             ) : (
                 <button
                     onClick={onApply}
                     disabled={loading || tournament.status === 'completed' || tournament.status === 'cancelled'}
-                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-indigo-500/25 group-hover:translate-y-[-2px]"
                 >
-                    {loading ? 'Applying...' : 
-                     tournament.status === 'completed' ? 'Tournament Ended' :
+                    {loading ? 'Processing...' : 
+                     tournament.status === 'completed' ? 'Ended' :
                      tournament.status === 'cancelled' ? 'Cancelled' :
-                     'Apply to Join'}
+                     'Join Tournament'}
                 </button>
             )}
         </div>
@@ -278,33 +311,41 @@ function TournamentCard({ tournament, isMember, hasApplied, application, onApply
 
 function ApplicationCard({ application, onCancel, loading }) {
     const statusIcons = {
-        pending: <Clock className="h-5 w-5 text-yellow-500" />,
-        approved: <CheckCircle className="h-5 w-5 text-green-500" />,
-        rejected: <XCircle className="h-5 w-5 text-red-500" />
+        pending: <Clock className="h-5 w-5 text-yellow-500" weight="bold" />,
+        approved: <CheckCircle className="h-5 w-5 text-green-500" weight="fill" />,
+        rejected: <XCircle className="h-5 w-5 text-red-500" weight="fill" />
     };
 
     return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">{application.tournament.name}</h3>
-                {statusIcons[application.status]}
+        <div className="bg-slate-800/50 backdrop-blur-md border border-yellow-500/30 rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full blur-xl -mr-10 -mt-10"></div>
+            
+            <div className="flex items-center justify-between mb-4 relative z-10">
+                <h3 className="font-bold text-white text-lg">{application.tournament.name}</h3>
+                <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-700">
+                    {statusIcons[application.status]}
+                </div>
             </div>
             
-            <p className="text-sm text-gray-600 mb-2">
-                Applied: {new Date(application.appliedAt).toLocaleDateString()}
-            </p>
-            
-            {application.tournament.startDate && (
-                <p className="text-sm text-gray-600 mb-3">
-                    Starts: {new Date(application.tournament.startDate).toLocaleDateString()}
+            <div className="space-y-2 mb-6 relative z-10">
+                <p className="text-sm text-slate-400 flex justify-between">
+                    <span>Applied:</span>
+                    <span className="text-slate-200">{new Date(application.appliedAt).toLocaleDateString()}</span>
                 </p>
-            )}
+                
+                {application.tournament.startDate && (
+                    <p className="text-sm text-slate-400 flex justify-between">
+                        <span>Starts:</span>
+                        <span className="text-slate-200">{new Date(application.tournament.startDate).toLocaleDateString()}</span>
+                    </p>
+                )}
+            </div>
             
             {application.status === 'pending' && (
                 <button
                     onClick={() => onCancel(application.tournament?._id, application._id)}
                     disabled={loading}
-                    className="w-full px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                    className="w-full px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-bold transition-all disabled:opacity-50 relative z-10"
                 >
                     {loading ? 'Cancelling...' : 'Cancel Application'}
                 </button>

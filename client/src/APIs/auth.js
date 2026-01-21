@@ -1,6 +1,5 @@
 import axios from "axios";
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { Menu, X, Trophy, Users, Gamepad2, Calendar, Award, Bell, Settings, LogOut, Play, Plus, Search, Filter, ArrowRight, User, Shield, Building, CheckCircle, XCircle, Clock } from 'lucide-react';
+import axios from "axios";
 
 // Single axios instance with credentials enabled
 const API = axios.create({

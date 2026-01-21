@@ -13,7 +13,8 @@ import {
   startMatch,
   finishMatch,
   makeMove,
-  spectateMatch
+  spectateMatch,
+  getMatchAds
 } from "../controllers/matchController.js";
 
 import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
@@ -137,6 +138,16 @@ router.patch(
 // ==============================
 // MATCH GAMEPLAY
 // ==============================
+
+router.get(
+  "/:id/ads",
+  // authenticate, // Ads might be public? Let's leave auth optional or required based on policy. 
+  // For now, likely viewing match implies logged in based on other routes, but public spectating might exist.
+  // If public spectating exists, remove auth. Let's keep it open for now or require minimal auth.
+  // Actually, 'authenticate' is on other getMatch routes. Let's assume user is logged in.
+  authenticate,
+  getMatchAds
+);
 
 router.post(
   "/:id/move",

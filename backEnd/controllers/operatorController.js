@@ -466,7 +466,7 @@ export const updateRatingFormula = async (req, res) => {
         
         const formula = await RatingFormula.findByIdAndUpdate(
             req.params.id,
-            { name, description, winnerScore, loserScore, drawScore, isDefault },
+            { name, description, winnerScore, loserScore, drawScore, isDefault },   
             { new: true, runValidators: true }
         );
 

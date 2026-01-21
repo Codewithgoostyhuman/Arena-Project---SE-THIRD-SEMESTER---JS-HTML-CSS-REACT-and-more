@@ -6,7 +6,7 @@ class TournamentBracketService {
   /**
    * Generate all matches for a Single Elimination tournament
    */
-  async generateSingleEliminationBracket(tournamentId) {
+  async generateSingleEliminationBracket(tournamentId, settings = {}) {
     console.log('=== GENERATING SINGLE ELIMINATION BRACKET ===');
     console.log('Tournament ID:', tournamentId);
     
@@ -96,7 +96,7 @@ class TournamentBracketService {
           player2Seed: pair.seeds[1]
         },
         status: pair.players.includes(null) ? 'finished' : 'ready', // Set to ready if both players present
-        bestOf: 1, // Can be configured
+        bestOf: settings.bestOf || 1, // Can be configured
         score: { player1: 0, player2: 0 }  // ✅ Initialize score
       });
       
@@ -169,6 +169,104 @@ class TournamentBracketService {
     
     console.log(`✅ Generated ${allMatches.length} total matches for tournament`);
     
+    return allMatches;
+  }
+
+  /**
+   * Generate matches for Round Robin
+   */
+  async generateRoundRobinBracket(tournamentId, settings = {}) {
+    return this._generateRoundRobinMatches(tournamentId, settings, false);
+  }
+
+  /**
+   * Generate matches for Double Round Robin
+   */
+  async generateDoubleRoundRobinBracket(tournamentId, settings = {}) {
+    return this._generateRoundRobinMatches(tournamentId, settings, true);
+  }
+
+  async _generateRoundRobinMatches(tournamentId, settings, isDouble) {
+    console.log(`=== GENERATING ${isDouble ? 'DOUBLE ' : ''}ROUND ROBIN BRACKET ===`);
+    
+    const tournament = await Tournament.findById(tournamentId)
+      .populate('players')
+      .populate({
+        path: 'league',
+        populate: { path: 'game' }
+      });
+
+    if (!tournament || !tournament.league || !tournament.league.game) {
+      throw new Error('Invalid tournament configuration');
+    }
+
+    let pList = [...tournament.players].map(p => p._id);
+    if (pList.length < 2) throw new Error('Need at least 2 players');
+
+    // Add dummy for odd number of players
+    if (pList.length % 2 !== 0) {
+      pList.push(null); 
+    }
+
+    const n = pList.length;
+    const roundsPerCycle = n - 1;
+    const totalRounds = isDouble ? roundsPerCycle * 2 : roundsPerCycle;
+    const matchesPerRound = n / 2;
+    const allMatches = [];
+    const bestOf = settings.bestOf || 1;
+
+    // We need a stable array to rotate
+    let players = [...pList];
+
+    for (let r = 0; r < totalRounds; r++) {
+      // If we are in the second cycle (Double RR), we might want to swap home/away
+      // But purely for pairing, the logic is the same rotation.
+      // The rotation resets after roundsPerCycle.
+      // So if we just continue rotating, we get the same pairs again.
+      // To handle Home/Away, we can check if r >= roundsPerCycle.
+
+      for (let i = 0; i < matchesPerRound; i++) {
+        let p1 = players[i];
+        let p2 = players[n - 1 - i];
+
+        if (!p1 || !p2) continue; // Skip byes
+
+        // Swap for second leg of Double RR if desired
+        if (r >= roundsPerCycle) {
+            [p1, p2] = [p2, p1];
+        }
+
+        const match = new Match({
+          tournament: tournamentId,
+          league: tournament.league._id,
+          game: tournament.league.game._id,
+          players: [p1, p2],
+          round: r + 1,
+          matchNumber: allMatches.length + 1,
+          status: 'ready',
+          bestOf: bestOf,
+          score: { player1: 0, player2: 0 }
+        });
+
+        const savedMatch = await match.save();
+        allMatches.push(savedMatch);
+      }
+
+      // Rotate: Keep index 0, rotate the rest 1 step clockwise
+      // [0, 1, 2, 3] -> [0, 3, 1, 2]
+      const fixed = players[0];
+      const rotating = players.slice(1);
+      const last = rotating.pop();
+      rotating.unshift(last);
+      players = [fixed, ...rotating];
+    }
+
+    // Save to tournament
+    await Tournament.findByIdAndUpdate(tournamentId, {
+      matches: allMatches.map(m => m._id),
+      status: 'ongoing'
+    });
+
     return allMatches;
   }
   

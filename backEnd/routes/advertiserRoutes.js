@@ -3,6 +3,8 @@ import * as advertiserController from "../controllers/advertiserController.js";
 import { authenticate, authorizeRoles, Roles } from "../middleware/auth.js";
 import advertiserService from "../services/advertiserService.js";
 
+import upload from "../middleWare/uploadMiddleware.js";
+
 const router = express.Router();
 
 // ==============================
@@ -44,6 +46,39 @@ router.get(
   authenticate,
   authorizeRoles(Roles.ADVERTISER),
   advertiserController.getMyDashboard
+);
+
+// Get my balance
+router.get(
+  "/me/balance",
+  authenticate,
+  authorizeRoles(Roles.ADVERTISER),
+  advertiserController.getMyBalance
+);
+
+// Add funds
+router.post(
+  "/me/funds",
+  authenticate,
+  authorizeRoles(Roles.ADVERTISER),
+  advertiserController.addFunds
+);
+
+// Get my ads
+router.get(
+  "/me/ads",
+  authenticate,
+  authorizeRoles(Roles.ADVERTISER),
+  advertiserController.getMyAds
+);
+
+// Upload ad
+router.post(
+  "/me/ads",
+  authenticate,
+  authorizeRoles(Roles.ADVERTISER),
+  upload.single('image'),
+  advertiserController.uploadAd
 );
 
 // Update my advertiser info

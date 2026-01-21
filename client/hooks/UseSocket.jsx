@@ -1,73 +1,10 @@
-// client/src/hooks/useSocket.js
-import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useEffect, useState } from 'react';
+import { useSocketContext } from '../src/context/SocketContext';
 import { useAuth } from '../src/Auth/AuthContext';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-
+// Re-export useSocket for backward compatibility, but it now uses context
 export const useSocket = () => {
-  const socketRef = useRef(null);
-  const { user } = useAuth();
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState(null);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      transports: ['websocket', 'polling']
-    });
-
-    const socket = socketRef.current;
-
-    // Connection events
-    socket.on('connect', () => {
-      console.log('✅ Socket connected:', socket.id);
-      setIsConnected(true);
-      setConnectionError(null);
-      
-      // Authenticate user
-      socket.emit('authenticate', user._id);
-    });
-
-    socket.on('authenticated', (data) => {
-      console.log('✅ Socket authenticated:', data);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('🔌 Socket disconnected');
-      setIsConnected(false);
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
-      setConnectionError(error.message);
-      setIsConnected(false);
-    });
-
-    socket.on('error', (error) => {
-      console.error('❌ Socket error:', error);
-      setConnectionError(error.message);
-    });
-
-    // Cleanup on unmount
-    return () => {
-      if (socket) {
-        console.log('🔌 Cleaning up socket connection');
-        socket.disconnect();
-      }
-    };
-  }, [user]);
-
-  return {
-    socket: socketRef.current,
-    isConnected,
-    connectionError
-  };
+  return useSocketContext();
 };
 
 // ============================================
@@ -76,8 +13,10 @@ export const useSocket = () => {
 
 export const useMatchSocket = (matchId) => {
   const { socket, isConnected } = useSocket();
+  const { currentUser } = useAuth();
   const [matchState, setMatchState] = useState(null);
   const [isInMatch, setIsInMatch] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!socket || !isConnected || !matchId) return;
@@ -90,6 +29,13 @@ export const useMatchSocket = (matchId) => {
     socket.on('match-state', (state) => {
       console.log('📊 Match state received:', state);
       setMatchState(state);
+      setError(null);
+    });
+
+    // Listen for generic errors from the server (like "Match not found")
+    socket.on('error', (err) => {
+        console.error('❌ Match socket error:', err);
+        setError(err.message || 'Unknown socket error');
     });
 
     // Listen for moves
@@ -121,6 +67,7 @@ export const useMatchSocket = (matchId) => {
     // Error handling
     socket.on('move-error', (error) => {
       console.error('❌ Move error:', error);
+      setError(error.message);
     });
 
     // Cleanup
@@ -128,6 +75,7 @@ export const useMatchSocket = (matchId) => {
       if (socket) {
         socket.emit('leave-match', matchId);
         socket.off('match-state');
+        socket.off('error');
         socket.off('move-made');
         socket.off('player-joined');
         socket.off('player-left');
@@ -140,19 +88,30 @@ export const useMatchSocket = (matchId) => {
 
   const makeMove = (move) => {
     if (socket && isConnected) {
-      socket.emit('make-move', { matchId, move });
+      socket.emit('make-move', { 
+        matchId, 
+        playerId: currentUser?._id,
+        move 
+      });
     }
   };
 
   const sendChatMessage = (message) => {
     if (socket && isConnected) {
-      socket.emit('match-chat', { matchId, message });
+      socket.emit('match-chat', { 
+        matchId, 
+        playerId: currentUser?._id,
+        message 
+      });
     }
   };
 
   const setPlayerReady = () => {
     if (socket && isConnected) {
-      socket.emit('player-ready', { matchId });
+      socket.emit('player-ready', { 
+        matchId,
+        playerId: currentUser?._id
+      });
     }
   };
 
@@ -162,7 +121,8 @@ export const useMatchSocket = (matchId) => {
     makeMove,
     sendChatMessage,
     setPlayerReady,
-    isConnected
+    isConnected,
+    error
   };
 };
 
@@ -222,7 +182,7 @@ export const useTournamentSocket = (tournamentId) => {
 
 export const useNotifications = () => {
   const { socket, isConnected } = useSocket();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {

@@ -10,8 +10,7 @@ const TournamentSchema = new mongoose.Schema({
   },
 
   style: {
-    type: String,
-    enum: ["RoundRobin", "DoubleRoundRobin", "SingleElimination"],
+    type: String, // References TournamentStyle.name
     required: true,
   },
 

@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/Codewithgoostyhuman/Arena-Project---SE-THIRD-SEMESTER---JS-HTML-CSS-REACT-and-more#readme",
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "concurrently": "^9.2.1",

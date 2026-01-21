@@ -6,19 +6,21 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from "../schemas/UserSchema.js"
 import Game from "../schemas/GameSchema.js"
+import Advertiser from "../schemas/AdvertiserSchema.js"
 
 dotenv.config();
 
 const seedDatabase = async () => {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/arena-esports');
+        await mongoose.connect(process.env.MONGO_URI );
         console.log('✅ Connected to MongoDB');
 
         // Clear existing data
         console.log('🗑️  Clearing existing data...');
         await User.deleteMany({});
         await Game.deleteMany({});
+        await Advertiser.deleteMany({});
         console.log('✅ Data cleared');
 
         // ======================
@@ -165,16 +167,27 @@ const seedDatabase = async () => {
         console.log(`✅ Created ${leagueOwners.length} league owners`);
 
         // 5. Create Advertisers
-        const advertisers = await User.create([
-            {
-                name: 'Brand Advertiser',
-                email: 'advertiser@brand.com',
-                password: plainPassword,
-                role: 'advertiser',
-                status: 'pending'
-            }
-        ]);
-        console.log(`✅ Created ${advertisers.length} advertisers`);
+        const advertiserUser = await User.create({
+            name: 'Brand Advertiser',
+            email: 'advertiser@brand.com',
+            password: plainPassword,
+            role: 'advertiser',
+            status: 'active' // Changed to active for immediate testing
+        });
+        
+        // Create linked Advertiser Profile
+        const advertiserProfile = await Advertiser.create({
+            user: advertiserUser._id,
+            companyName: "Brand Inc.",
+            payments: 1000, // Initial balance for testing
+            ads: []
+        });
+
+        // Link profile to user
+        advertiserUser.advertiserProfile = advertiserProfile._id;
+        await advertiserUser.save();
+
+        console.log(`✅ Created advertiser: ${advertiserUser.email}`);
 
         // ======================
         // CREATE GAMES

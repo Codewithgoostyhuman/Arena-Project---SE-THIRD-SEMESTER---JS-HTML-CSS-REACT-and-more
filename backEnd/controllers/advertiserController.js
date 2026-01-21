@@ -157,10 +157,59 @@ export const getAdvertiserDashboard = async (req, res) => {
 export const getMyDashboard = async (req, res) => {
   try {
     const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
-    const dashboard = await advertiserService.getAdvertiserDashboard(ad._id);
+    const dashboard = await advertiserService.getAdvertiserDashboard(ad.advertiserProfile._id);
     res.json(dashboard);
   } catch (err) {
     res.status(404).json({ error: err.message });
+  }
+};
+
+export const getMyBalance = async (req, res) => {
+  try {
+    const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
+    const balance = await advertiserService.getBalance(ad.advertiserProfile._id);
+    res.json(balance);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+};
+
+export const addFunds = async (req, res) => {
+  try {
+    console.log("Adding funds, body:", req.body);
+    const { amount } = req.body;
+    const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
+    const result = await advertiserService.addFunds(ad.advertiserProfile._id, amount);
+    res.json(result);
+  } catch (err) {
+    console.error("Error adding funds:", err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+export const uploadAd = async (req, res) => {
+  try {
+    console.log("Uploading ad, body:", req.body, "file:", req.file);
+    const adData = {
+      ...req.body,
+      content: req.file ? `/uploads/${req.file.filename}` : req.body.content 
+    };
+    const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
+    const result = await advertiserService.uploadAd(ad.advertiserProfile._id, adData);
+    res.status(201).json(result);
+  } catch (err) {
+    console.error("Error uploading ad:", err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+export const getMyAds = async (req, res) => {
+  try {
+    const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
+    const ads = await advertiserService.getAds(ad.advertiserProfile._id);
+    res.json(ads);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };
 

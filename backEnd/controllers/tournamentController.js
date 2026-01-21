@@ -3,6 +3,7 @@ import League from "../schemas/LeagueSchema.js";
 import Tournament from "../schemas/TournamentSchema.js";
 import tournamentBracketService from "../services/tournamentBracketService.js";
 import matchGameService from "../services/matchService.js";
+import TournamentStyle from "../schemas/TournamentStyle.js";
 
 /* ================================
    LEAGUE OWNER / OPERATOR ROUTES
@@ -334,17 +335,26 @@ export const startTournament = async (req, res) => {
     // Generate bracket based on tournament style
     let matches;
     
-    switch (tournament.style) {
+    // Lookup style configuration
+    const styleDoc = await TournamentStyle.findOne({ name: tournament.style });
+    const styleType = styleDoc ? styleDoc.type : tournament.style;
+    const settings = styleDoc ? styleDoc.settings : {};
+    
+    switch (styleType) {
       case 'SingleElimination':
-        matches = await tournamentBracketService.generateSingleEliminationBracket(id);
+        matches = await tournamentBracketService.generateSingleEliminationBracket(id, settings);
         break;
       
-      case 'DoubleRoundRobin':
       case 'RoundRobin':
-        return res.status(400).json({ message: 'Round Robin not yet implemented' });
+        matches = await tournamentBracketService.generateRoundRobinBracket(id, settings);
+        break;
+
+      case 'DoubleRoundRobin':
+        matches = await tournamentBracketService.generateDoubleRoundRobinBracket(id, settings);
+        break;
       
       default:
-        return res.status(400).json({ message: 'Unknown tournament style' });
+        return res.status(400).json({ message: `Unknown tournament style: ${styleType}` });
     }
     
     // Notify via socket

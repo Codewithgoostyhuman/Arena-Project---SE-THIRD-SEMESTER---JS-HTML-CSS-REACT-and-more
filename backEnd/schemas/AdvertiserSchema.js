@@ -72,6 +72,14 @@ const AdvertiserSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tournament"
     },
+    title: {
+      type: String,
+      required: false // Optional for now as legacy data might not have it, or set true if new
+    },
+    content: {
+      type: String, // URL or text content
+      required: false
+    },
     type: { 
       type: String, 
       enum: ['exclusive', 'impression', 'click'],

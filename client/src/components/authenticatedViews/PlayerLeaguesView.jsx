@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Trophy, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { UsersThree, Trophy, CalendarBlank, CheckCircle, Clock, XCircle, GameController } from '@phosphor-icons/react';
 import { apiService } from '../../APIs/apiService';
 
 export default function PlayerLeaguesView() {
@@ -95,90 +95,120 @@ export default function PlayerLeaguesView() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+                    <p className="text-indigo-400 font-bold animate-pulse">Loading Leagues...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 className="text-4xl font-bold mb-8">Leagues</h1>
+        <div className="min-h-screen bg-slate-900 text-white relative overflow-hidden">
+              {/* Background Grid Pattern */}
+              <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" 
+                style={{ 
+                    backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)', 
+                    backgroundSize: '40px 40px' 
+                }}
+            />
+            <div className="fixed top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                    <p className="text-red-800">{error}</p>
-                    <button 
-                        onClick={loadLeagues}
-                        className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                    >
-                        Retry
-                    </button>
-                </div>
-            )}
-
-            {/* Pending Applications */}
-            {myApplications.length > 0 && (
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="mb-12">
-                    <h2 className="text-2xl font-bold mb-4">Pending Applications</h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {myApplications.map(app => (
-                            <ApplicationCard 
-                                key={app._id}
-                                application={app}
-                                onCancel={handleCancelApplication}
-                                loading={actionLoading === app._id}
-                            />
-                        ))}
-                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        League <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Hub</span>
+                    </h1>
+                     <p className="text-slate-400 mt-2 text-lg">Join leagues, compete in tournaments, and prove your skill.</p>
                 </div>
-            )}
 
-            {/* My Leagues */}
-            <div className="mb-12">
-                <h2 className="text-2xl font-bold mb-4">My Leagues</h2>
-                {myLeagues.length === 0 ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                        <p className="text-gray-600">You haven't joined any leagues yet</p>
-                        <p className="text-sm text-gray-500 mt-2">Browse available leagues below to get started</p>
-                    </div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {myLeagues.map(league => (
-                            <LeagueCard 
-                                key={league._id}
-                                league={league}
-                                isMember={true}
-                                onLeave={() => handleLeave(league._id)}
-                                loading={actionLoading === league._id}
-                            />
-                        ))}
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-8 flex items-center justify-between backdrop-blur-sm text-red-400">
+                        <p>{error}</p>
+                        <button 
+                            onClick={loadLeagues}
+                            className="text-sm font-bold bg-red-500/20 px-3 py-1 rounded hover:bg-red-500/30 transition"
+                        >
+                            Retry
+                        </button>
                     </div>
                 )}
-            </div>
 
-            {/* All Available Leagues */}
-            <div>
-                <h2 className="text-2xl font-bold mb-4">Available Leagues</h2>
-                {allLeagues.length === 0 ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                        <p className="text-gray-600">No active leagues available</p>
-                    </div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allLeagues.map(league => (
-                            <LeagueCard 
-                                key={league._id}
-                                league={league}
-                                isMember={isAlreadyMember(league._id)}
-                                hasApplied={hasApplied(league._id)}
-                                application={getApplication(league._id)}
-                                onApply={() => handleApply(league._id)}
-                                loading={actionLoading === league._id}
-                            />
-                        ))}
+                {/* Pending Applications */}
+                {myApplications.length > 0 && (
+                    <div className="mb-12">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Clock className="w-6 h-6 text-yellow-500" weight="duotone" />
+                            <h2 className="text-2xl font-bold text-white uppercase tracking-wide">Pending Applications</h2>
+                        </div>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {myApplications.map(app => (
+                                <ApplicationCard 
+                                    key={app._id}
+                                    application={app}
+                                    onCancel={handleCancelApplication}
+                                    loading={actionLoading === app._id}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
+
+                {/* My Leagues */}
+                <div className="mb-12">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Trophy className="w-6 h-6 text-indigo-500" weight="duotone" />
+                         <h2 className="text-2xl font-bold text-white uppercase tracking-wide">My Leagues</h2>
+                    </div>
+                   
+                    {myLeagues.length === 0 ? (
+                        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-12 text-center backdrop-blur-md">
+                            <p className="text-slate-400 text-lg">You haven't joined any leagues yet</p>
+                            <p className="text-sm text-slate-500 mt-2">Browse available leagues below to get started</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {myLeagues.map(league => (
+                                <LeagueCard 
+                                    key={league._id}
+                                    league={league}
+                                    isMember={true}
+                                    onLeave={() => handleLeave(league._id)}
+                                    loading={actionLoading === league._id}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* All Available Leagues */}
+                <div>
+                     <div className="flex items-center gap-3 mb-6">
+                        <GameController className="w-6 h-6 text-green-500" weight="duotone" />
+                         <h2 className="text-2xl font-bold text-white uppercase tracking-wide">Available Leagues</h2>
+                    </div>
+                    
+                    {allLeagues.length === 0 ? (
+                        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-12 text-center backdrop-blur-md">
+                            <p className="text-slate-400 text-lg">No active leagues available</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {allLeagues.map(league => (
+                                <LeagueCard 
+                                    key={league._id}
+                                    league={league}
+                                    isMember={isAlreadyMember(league._id)}
+                                    hasApplied={hasApplied(league._id)}
+                                    application={getApplication(league._id)}
+                                    onApply={() => handleApply(league._id)}
+                                    loading={actionLoading === league._id}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -186,86 +216,91 @@ export default function PlayerLeaguesView() {
 
 function LeagueCard({ league, isMember, hasApplied, application, onApply, onLeave, loading }) {
     return (
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+        <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] p-6 group flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">{league.name}</h3>
+                 <h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tight line-clamp-1">{league.name}</h3>
                 {isMember && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/30 text-[10px] font-bold uppercase tracking-widest rounded">
                         Member
                     </span>
                 )}
             </div>
 
-            <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                    <Trophy className="h-4 w-4 mr-2" />
-                    <span>{league.game?.name || 'Game'}</span>
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2" />
+            <div className="space-y-3 mb-6 flex-grow">
+                 {league.game?.name && (
+                    <div className="flex items-center text-sm text-slate-400">
+                        <GameController className="h-4 w-4 mr-2 text-green-400" weight="duotone" />
+                        <span>{league.game?.name}</span>
+                    </div>
+                )}
+                <div className="flex items-center text-sm text-slate-400">
+                    <UsersThree className="h-4 w-4 mr-2 text-blue-400" weight="duotone" />
                     <span>{league.players?.length || 0} Players</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
+                <div className="flex items-center text-sm text-slate-400">
+                    <CalendarBlank className="h-4 w-4 mr-2 text-indigo-400" weight="duotone" />
                     <span>{new Date(league.createdAt).toLocaleDateString()}</span>
                 </div>
-            </div>
-
-            {league.description && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                 {league.description && (
+                <p className="text-sm text-slate-500 mt-4 line-clamp-2 leading-relaxed">
                     {league.description}
                 </p>
             )}
+            </div>
 
-            {isMember ? (
-                <button
-                    onClick={onLeave}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {loading ? 'Leaving...' : 'Leave League'}
-                </button>
-            ) : hasApplied ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded">
-                    <Clock className="h-4 w-4" />
-                    <span>Application Pending</span>
-                </div>
-            ) : (
-                <button
-                    onClick={onApply}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {loading ? 'Applying...' : 'Apply to Join'}
-                </button>
-            )}
+            <div className="pt-4 border-t border-slate-700/50 mt-auto">
+                {isMember ? (
+                    <button
+                        onClick={onLeave}
+                        disabled={loading}
+                        className="w-full px-4 py-3 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl font-bold uppercase tracking-wider text-sm hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Leaving...' : 'Leave League'}
+                    </button>
+                ) : hasApplied ? (
+                    <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-xl font-bold uppercase tracking-wider text-sm">
+                        <Clock className="h-4 w-4" weight="bold" />
+                        <span>Pending</span>
+                    </div>
+                ) : (
+                    <button
+                        onClick={onApply}
+                        disabled={loading}
+                        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold uppercase tracking-wider text-sm shadow-lg hover:shadow-indigo-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Applying...' : 'Apply to Join'}
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
 
 function ApplicationCard({ application, onCancel, loading }) {
     const statusIcons = {
-        pending: <Clock className="h-5 w-5 text-yellow-500" />,
-        approved: <CheckCircle className="h-5 w-5 text-green-500" />,
-        rejected: <XCircle className="h-5 w-5 text-red-500" />
+        pending: <Clock className="h-5 w-5 text-yellow-400" weight="duotone" />,
+        approved: <CheckCircle className="h-5 w-5 text-green-400" weight="fill" />,
+        rejected: <XCircle className="h-5 w-5 text-red-400" weight="fill" />
     };
 
     return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">{application.league.name}</h3>
+        <div className="bg-slate-800/50 backdrop-blur-md border border-yellow-500/30 rounded-xl p-5 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-bl-full pointer-events-none"></div>
+
+            <div className="flex items-center justify-between mb-4 relative z-10">
+                <h3 className="font-bold text-white text-lg">{application.league.name}</h3>
                 {statusIcons[application.status]}
             </div>
             
-            <p className="text-sm text-gray-600 mb-2">
-                Applied: {new Date(application.appliedAt).toLocaleDateString()}
+            <p className="text-xs text-slate-400 mb-6 uppercase tracking-wider">
+                Applied: <span className="text-slate-300 ml-1">{new Date(application.appliedAt).toLocaleDateString()}</span>
             </p>
             
             {application.status === 'pending' && (
                 <button
                     onClick={() => onCancel(application.league._id, application._id)}
                     disabled={loading}
-                    className="w-full px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 text-xs font-bold uppercase tracking-wider rounded-lg transition disabled:opacity-50"
                 >
                     {loading ? 'Cancelling...' : 'Cancel Application'}
                 </button>

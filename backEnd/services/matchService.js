@@ -293,26 +293,66 @@ class MatchGameService {
    * Handle when entire match ends
    */
   async _handleMatchEnd(match, winnerId) {
-    const loserId = match.players.find(p => p._id.toString() !== winnerId.toString())._id;
-    
-    match.winner = winnerId;
-    match.loser = loserId;
+    return this.resolveMatch(match._id, winnerId, false);
+  }
+
+  /**
+   * Resolve a match manually or automatically
+   * Updates status, calculates stats, and advances bracket
+   */
+  async resolveMatch(matchId, winnerId, isDraw = false) {
+    const match = await Match.findById(matchId)
+      .populate('players')
+      .populate({
+        path: 'league',
+        populate: { path: 'ratingFormula' }
+      });
+
+    if (!match) throw new Error('Match not found');
+
+    // Update match status
     match.status = 'finished';
     match.completedAt = new Date();
-    
-    // Update player stats
-    await User.findByIdAndUpdate(winnerId, {
-      $inc: { 'stats.wins': 1, 'stats.points': 3 }
-    });
-    
-    await User.findByIdAndUpdate(loserId, {
-      $inc: { 'stats.losses': 1 }
-    });
-    
-    // If this is a tournament match, advance winner
-    if (match.tournament) {
-      await tournamentBracketService.advanceWinner(match._id, winnerId);
+    match.isDraw = isDraw;
+
+    if (!isDraw && winnerId) {
+      match.winner = winnerId;
+      match.loser = match.players.find(p => p._id.toString() !== winnerId.toString())?._id;
     }
+
+    await match.save();
+
+    // Calculate Stats
+    const formula = match?.league?.ratingFormula || { winnerScore: 3, loserScore: 0, drawScore: 1 };
+    
+    if (isDraw) {
+      // Draw: Update both players
+      for (const player of match.players) {
+        await User.findByIdAndUpdate(player._id, {
+          $inc: { 'stats.draws': 1, 'stats.points': formula.drawScore }
+        });
+      }
+    } else if (winnerId) {
+      // Winner/Loser
+      const loserId = match.players.find(p => p._id.toString() !== winnerId.toString())?._id;
+      
+      await User.findByIdAndUpdate(winnerId, {
+        $inc: { 'stats.wins': 1, 'stats.points': formula.winnerScore }
+      });
+      
+      if (loserId) {
+        await User.findByIdAndUpdate(loserId, {
+          $inc: { 'stats.losses': 1, 'stats.points': formula.loserScore }
+        });
+      }
+    }
+
+    // Advance Bracket if Tournament
+    if (match.tournament && match.winner) {
+      await tournamentBracketService.advanceWinner(match._id, match.winner);
+    }
+    
+    return match;
   }
   
   /**

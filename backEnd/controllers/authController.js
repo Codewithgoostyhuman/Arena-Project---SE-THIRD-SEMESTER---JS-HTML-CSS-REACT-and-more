@@ -7,7 +7,7 @@ import AuthService from "../services/authService.js";
  */
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, companyName } = req.body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -20,7 +20,8 @@ export const register = async (req, res) => {
       name, 
       email, 
       password, 
-      role 
+      role,
+      companyName
     });
 
     // Set token in cookie if provided

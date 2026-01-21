@@ -375,6 +375,8 @@ export const apiService = {
         
         spectate: (matchId) => apiService.request(`/matches/${matchId}/spectate`, {
             method: 'POST'
-        })
+        }),
+
+        getMatchAds: (matchId) => apiService.request(`/matches/${matchId}/ads`)
     },
 };

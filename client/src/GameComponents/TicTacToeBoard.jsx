@@ -1,144 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../Auth/AuthContext';
-import { apiService } from '../APIs/apiService';
 
-const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
+const TicTacToeBoard = ({ match, makeMove, isConnected }) => {
   const { currentUser } = useAuth();
-  const [match, setMatch] = useState(null);
-  const [gameState, setGameState] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [makingMove, setMakingMove] = useState(false);
+  // We don't need local state for the match data anymore, it comes from props
+  const [localMakingMove, setLocalMakingMove] = useState(false);
 
-  useEffect(() => {
-    if (matchId) {
-      fetchMatchState();
-      const interval = setInterval(fetchMatchState, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [matchId]);
-
-  const fetchMatchState = async () => {
-    try {
-      const data = await apiService.matches.getState(matchId);
-      console.log('Match state received:', data);
-      
-      setMatch(data);
-      
-      const state = data.currentGameState;
-      
-      if (!state) {
-        console.warn('No game state in response');
-        setGameState({
-          board: Array(9).fill(null),
-          currentPlayer: 0,
-          winner: null,
-          isDraw: false
-        });
-      } else {
-        setGameState(state);
-      }
-      
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching match state:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  // Derived state from props
+  const gameState = match?.currentGameState || {
+    board: Array(9).fill(null),
+    currentPlayer: 0,
+    winner: null,
+    isDraw: false
   };
 
   const handleCellClick = async (index) => {
-    if (!match || !gameState || !currentUser) {
-      console.log('Missing data:', { match, gameState, currentUser });
-      return;
-    }
+    if (!match || !gameState || !currentUser) return;
 
-    if (makingMove) {
-      console.log('Already making a move');
-      return;
-    }
+    if (localMakingMove) return;
 
     if (match.status !== 'live') {
-      console.log('Match is not live:', match.status);
-      return;
+        console.log('Match is not live:', match.status);
+        return;
     }
 
     if (gameState.board[index] !== null) {
-      console.log('Cell already occupied');
-      return;
+        console.log('Cell already occupied');
+        return;
     }
 
     if (gameState.winner || gameState.isDraw) {
-      console.log('Game is over');
-      return;
+        console.log('Game is over');
+        return;
     }
 
-    // FIX: Check using match.currentTurn (player ID), not gameState.currentPlayer (index)
+    // Check turn
     const isMyTurn = match.currentTurn?.toString() === currentUser._id?.toString();
     
     if (!isMyTurn) {
-      console.log('Not your turn - currentTurn:', match.currentTurn, 'your ID:', currentUser._id);
-      return;
+        console.log('Not your turn');
+        return;
     }
 
-    // Make the move
+    // Make the move via socket function passed from parent
     try {
-      setMakingMove(true);
+      setLocalMakingMove(true);
       console.log('Making move at position:', index);
-
-      await apiService.matches.makeMove(matchId, {
-        move: index
-      });
-
-      console.log('Move made successfully');
       
-      await fetchMatchState();
-      
-      if (onMatchUpdate) {
-        onMatchUpdate();
-      }
+      // The parent's makeMove function handles the socket emission
+      makeMove(index);
+
+      // Note: We don't wait for 'success' here because socket is fire-and-forget in this context
+      // The state will update when the server broadcasts the new state
     } catch (err) {
       console.error('Error making move:', err);
-      setError(err.message);
     } finally {
-      setMakingMove(false);
+      // Small timeout to prevent double clicks before state update arrives
+      setTimeout(() => setLocalMakingMove(false), 500);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
-        <p className="text-red-500">Error: {error}</p>
-        <button
-          onClick={fetchMatchState}
-          className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!match || !gameState) {
+  if (!match) {
     return (
       <div className="text-center p-8 text-gray-400">
-        <p>Unable to load game state</p>
+        <p>Waiting for match data...</p>
       </div>
     );
   }
 
   const playerIndex = match.players?.findIndex(p => p._id === currentUser?._id) ?? -1;
-  
-  // FIX: Use match.currentTurn to determine whose turn it is
   const isMyTurn = match.currentTurn?.toString() === currentUser?._id?.toString();
   
   // Find which player's turn it is based on currentTurn
@@ -150,7 +80,6 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
 
   const getCellSymbol = (value) => {
     if (value === null) return '';
-    // Value is 'X' or 'O' string
     return value;
   };
 
@@ -177,7 +106,7 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
               Current Turn: {currentPlayerName}
             </div>
             {isMyTurn && (
-              <div className="text-green-400 font-medium">
+              <div className="text-green-400 font-medium animate-pulse">
                 Your turn! Make your move
               </div>
             )}
@@ -185,6 +114,11 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
               <div className="text-gray-400">
                 Waiting for opponent...
               </div>
+            )}
+             {!isConnected && (
+                <div className="text-red-400 text-sm">
+                    Disconnected from server
+                </div>
             )}
           </div>
         )}
@@ -195,14 +129,14 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
         {match.players?.map((player, idx) => (
           <div
             key={player._id}
-            className={`p-4 rounded-lg ${
+            className={`p-4 rounded-lg transition-colors border-2 ${
               match.currentTurn?.toString() === player._id?.toString() && !gameState.winner && !gameState.isDraw
-                ? 'bg-blue-600'
-                : 'bg-gray-700'
+                ? 'bg-blue-600/20 border-blue-500'
+                : 'bg-gray-700/50 border-transparent'
             }`}
           >
             <div className="font-semibold">{player.name}</div>
-            <div className="text-2xl font-bold">
+            <div className={`text-2xl font-bold ${idx === 0 ? 'text-blue-500' : 'text-red-500'}`}>
               {gameState.players?.[player._id] || (idx === 0 ? 'X' : 'O')}
             </div>
             {playerIndex === idx && (
@@ -223,40 +157,28 @@ const TicTacToeBoard = ({ matchId, onMatchUpdate }) => {
               !isMyTurn ||
               gameState.winner !== null ||
               gameState.isDraw ||
-              makingMove ||
-              playerIndex === -1
+              localMakingMove ||
+              playerIndex === -1 ||
+              !isConnected
             }
             className={`
               aspect-square flex items-center justify-center
               text-6xl font-bold rounded-lg
               transition-all duration-200
               ${cell === null && isMyTurn && !gameState.winner && !gameState.isDraw
-                ? 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
-                : 'bg-gray-800 cursor-not-allowed'
+                ? 'bg-gray-700 hover:bg-gray-600 cursor-pointer hover:scale-105'
+                : 'bg-gray-800'
               }
+              ${cell !== null ? 'bg-gray-800/80' : ''}
               ${getCellColor(cell)}
-              ${makingMove ? 'opacity-50' : ''}
+              ${(localMakingMove || !isConnected) ? 'opacity-50 cursor-not-allowed' : ''}
+              ${(!isMyTurn && cell === null) ? 'cursor-default' : ''}
             `}
           >
             {getCellSymbol(cell)}
           </button>
         ))}
       </div>
-
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-6 p-4 bg-gray-800 rounded-lg text-xs">
-          <div className="font-bold mb-2">Debug Info:</div>
-          <div>Match Status: {match.status}</div>
-          <div>Current Turn (ID): {match.currentTurn}</div>
-          <div>Your ID: {currentUser?._id}</div>
-          <div>Is Your Turn: {isMyTurn ? 'Yes' : 'No'}</div>
-          <div>Your Player Index: {playerIndex}</div>
-          <div>Winner: {gameState.winner || 'None'}</div>
-          <div>Is Draw: {gameState.isDraw ? 'Yes' : 'No'}</div>
-          <div>Making Move: {makingMove ? 'Yes' : 'No'}</div>
-        </div>
-      )}
     </div>
   );
 };

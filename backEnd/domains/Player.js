@@ -285,7 +285,14 @@ console.log('✅ Application created:', application);
       status: 'pending'
     });
 
-    const totalGames = (user.stats?.wins || 0) + (user.stats?.losses || 0);
+    // Count matches to be played (Live, Ready, Upcoming)
+    const Match = (await import("../schemas/MatchSchema.js")).default;
+    const upcomingMatchesCount = await Match.countDocuments({
+      players: playerId,
+      status: { $in: ['live', 'ready', 'upcoming'] }
+    });
+
+    const totalGames = (user.stats?.wins || 0) + (user.stats?.losses || 0) + (user.stats?.draws || 0);
     const winRate = totalGames > 0
       ? ((user.stats.wins / totalGames) * 100).toFixed(1)
       : '0.0';
@@ -299,7 +306,9 @@ console.log('✅ Application created:', application);
       tournamentsCount,
       pendingApplications,
       winRate: `${winRate}%`,
-      totalGames
+      totalGames,       // Finished matches
+      finishedMatches: totalGames, // Alias for clarity
+      upcomingMatchesCount // To be played
     };
   }
  /* ================================

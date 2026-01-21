@@ -58,6 +58,9 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(reactBuildPath, "index.html"));
 });
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Root endpoint
 app.get("/", (req, res) => {

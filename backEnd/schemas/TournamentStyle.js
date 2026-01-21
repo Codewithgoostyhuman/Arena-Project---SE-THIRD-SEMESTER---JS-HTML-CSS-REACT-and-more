@@ -17,6 +17,21 @@ const TournamentStyleSchema = new mongoose.Schema({
     default: false, // Marks if this is the default tournament style
   },
 
+  type: {
+    type: String,
+    enum: ["SingleElimination", "RoundRobin", "DoubleRoundRobin"], 
+    required: true,
+    default: "SingleElimination"
+  },
+
+  settings: {
+    bestOf: { type: Number, default: 1 },
+    pointsPerWin: { type: Number, default: 3 },
+    pointsPerDraw: { type: Number, default: 1 },
+    pointsPerLoss: { type: Number, default: 0 },
+    // specific settings can be added here
+  },
+
   status: {
     type: String,
     enum: ["active", "inactive"], // Only "active" or "inactive" allowed
