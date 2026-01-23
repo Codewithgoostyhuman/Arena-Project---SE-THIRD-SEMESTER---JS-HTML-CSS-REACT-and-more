@@ -47,6 +47,15 @@ const TournamentSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: "Advertiser"
     },
+    type: {
+      type: String,
+      enum: ['exclusive', 'perUnit'],
+      default: 'perUnit'
+    },
+    proposedAmount: {
+      type: Number,
+      default: 0
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'declined', 'selected'],
@@ -74,7 +83,7 @@ const TournamentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["planning", "seeking_sponsors", "open_for_applications", "upcoming", "ongoing", "finished"],
-    default: "open_for_applications",
+    default: "planning",
   },
 }, {
   timestamps: true

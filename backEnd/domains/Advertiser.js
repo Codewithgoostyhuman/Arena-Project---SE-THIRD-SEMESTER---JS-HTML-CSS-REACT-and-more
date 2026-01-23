@@ -1,6 +1,7 @@
 // backend/domains/Advertiser.js
 import User from "../schemas/UserSchema.js";
 import Advertiser from "../schemas/AdvertiserSchema.js";
+import Tournament from "../schemas/TournamentSchema.js";
 
 export default class AdvertiserDomain {
 
@@ -136,14 +137,33 @@ export default class AdvertiserDomain {
      SPONSORSHIP REQUEST MANAGEMENT
   =============================== */
   
-  static async addSponsorshipRequest(advertiserId, tournamentId, leagueId, proposedAmount) {
+  static async addSponsorshipRequest(advertiserId, tournamentId, leagueId, proposedAmount, type = 'perUnit') {
     const advertiser = await Advertiser.findById(advertiserId);
     if (!advertiser) throw new Error("Advertiser not found");
+
+    if (tournamentId) {
+      const tournament = await Tournament.findById(tournamentId);
+      if (!tournament) throw new Error("Tournament not found");
+
+      if (type === 'exclusive' && tournament.exclusiveSponsor) {
+        throw new Error("Tournament already has an exclusive sponsor");
+      }
+
+      // Add to tournament's requests
+      tournament.sponsorshipRequests.push({
+        advertiser: advertiserId,
+        type,
+        proposedAmount,
+        status: "pending"
+      });
+      await tournament.save();
+    }
 
     advertiser.sponsorshipRequests.push({ 
       tournament: tournamentId, 
       league: leagueId, 
       proposedAmount, 
+      type,
       status: "pending" 
     });
     await advertiser.save();
@@ -153,14 +173,67 @@ export default class AdvertiserDomain {
 
   static async updateSponsorshipRequest(advertiserId, requestIndex, status) {
     const advertiser = await Advertiser.findById(advertiserId);
-    if (!advertiser) throw new Error("Advertiser not found");
-    if (!advertiser.sponsorshipRequests[requestIndex]) {
+    if (!advertiser || !advertiser.sponsorshipRequests[requestIndex]) {
       throw new Error("Sponsorship request not found");
     }
 
-    advertiser.sponsorshipRequests[requestIndex].status = status;
+    const request = advertiser.sponsorshipRequests[requestIndex];
+    request.status = status;
+    request.respondedAt = new Date();
+
+    if (request.tournament) {
+      const tournament = await Tournament.findById(request.tournament);
+      if (tournament) {
+        // Update status in tournament schema too
+        const tourneyReq = tournament.sponsorshipRequests.find(
+          r => r.advertiser.toString() === advertiserId.toString() && r.status === 'pending'
+        );
+        if (tourneyReq) {
+          tourneyReq.status = status;
+          tourneyReq.respondedAt = new Date();
+        }
+
+        // If exclusive sponsor accepted, handle exclusivity logic
+        if (status === 'accepted' && request.type === 'exclusive') {
+          tournament.exclusiveSponsor = advertiserId;
+          
+          // Auto-reject other pending requests
+          tournament.sponsorshipRequests.forEach(r => {
+            if (r.status === 'pending') {
+              r.status = 'declined';
+              r.respondedAt = new Date();
+            }
+          });
+
+          // Also update other advertisers' profiles
+          const otherAdvertisers = await Advertiser.find({
+            'sponsorshipRequests': {
+              $elemMatch: {
+                tournament: tournament._id,
+                status: 'pending'
+              }
+            }
+          });
+
+          for (const otherAd of otherAdvertisers) {
+            otherAd.sponsorshipRequests.forEach(r => {
+              if (r.tournament && r.tournament.toString() === tournament._id.toString() && r.status === 'pending') {
+                r.status = 'declined';
+                r.respondedAt = new Date();
+              }
+            });
+            await otherAd.save();
+          }
+
+          if (tournament.status === 'seeking_sponsors') {
+            tournament.status = 'open_for_applications';
+          }
+        }
+        await tournament.save();
+      }
+    }
+
     await advertiser.save();
-    
     return advertiser.toJSON();
   }
 
@@ -285,6 +358,7 @@ export default class AdvertiserDomain {
     const newAd = {
       title: adData.title,
       content: adData.content,
+      imageUrl: adData.imageUrl,
       tournament: adData.tournamentId, // Optional
       type: adData.type || 'impression',
       fee: adData.fee || 0,
@@ -298,9 +372,17 @@ export default class AdvertiserDomain {
   }
 
   static async getAds(advertiserId) {
-    const advertiser = await Advertiser.findById(advertiserId).populate('ads.tournament');
-    if (!advertiser) throw new Error("Advertiser not found");
-    return advertiser.ads;
+    try {
+      const advertiser = await Advertiser.findById(advertiserId).populate('ads.tournament');
+      if (!advertiser) throw new Error("Advertiser not found");
+      return advertiser.ads;
+    } catch (err) {
+      console.error("AdvertiserDomain.getAds ERROR:", err);
+      // Fallback: try without populate if populate is causing the crash
+      const advertiserRaw = await Advertiser.findById(advertiserId);
+      if (advertiserRaw) return advertiserRaw.ads;
+      throw err;
+    }
   }
 
   /* ===============================

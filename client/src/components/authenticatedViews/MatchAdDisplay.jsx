@@ -45,15 +45,15 @@ const MatchAdDisplay = ({ matchId }) => {
         </div>
         
         <div className="flex flex-col items-center justify-center text-center">
-            {currentAd.content && (currentAd.content.startsWith('http') ? (
+            {currentAd.imageUrl || (currentAd.content && currentAd.content.startsWith('/uploads')) ? (
                <img 
-                 src={currentAd.content} 
+                 src={`http://localhost:5000${currentAd.imageUrl || currentAd.content}`} 
                  alt={currentAd.title} 
                  className="max-h-32 object-contain mb-2 rounded"
                />
-            ) : (
+            ) : currentAd.content && (
                 <div className="text-gray-300 text-sm mb-2 italic">"{currentAd.content}"</div>
-            ))}
+            )}
             
             <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
                 {currentAd.title || currentAd.companyName || 'Sponsor'}

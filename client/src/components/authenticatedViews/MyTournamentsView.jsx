@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, UsersThree, CalendarBlank, Clock, Trash, Eye } from '@phosphor-icons/react';
 
-export default function MyTournamentsView({ setCurrentView }) {
+export default function MyTournamentsView({ setCurrentView, setSelectedMatchId, setSelectedTournamentId }) {
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -222,9 +222,8 @@ export default function MyTournamentsView({ setCurrentView }) {
                                             <div className="flex gap-3 pt-4 border-t border-slate-700/50">
                                                 <button
                                                     onClick={() => {
-                                                        // Navigate to tournament details view
-                                                        // Ideally we would set a view, but for now just log
-                                                        console.log('View tournament:', tournament._id);
+                                                        setSelectedTournamentId(tournament._id);
+                                                        setCurrentView('manage-tournament');
                                                     }}
                                                     className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-xl transition text-sm font-bold shadow-lg hover:shadow-indigo-500/25"
                                                 >

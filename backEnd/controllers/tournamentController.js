@@ -455,3 +455,33 @@ export const getTournamentStandings = async (req, res) => {
     res.status(500).json({ message: 'Error getting standings', error: error.message });
   }
 };
+export const getSponsorableTournaments = async (req, res) => {
+  try {
+    const tournaments = await tournamentService.getSponsorableTournaments();
+    res.json(tournaments);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const updateTournamentStatus = async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const { status } = req.body;
+    const tournament = await tournamentService.updateTournamentStatus(tournamentId, status);
+    res.json(tournament);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const manageSponsorshipRequest = async (req, res) => {
+  try {
+    const { tournamentId, requestId } = req.params;
+    const { status } = req.body;
+    const tournament = await tournamentService.manageSponsorshipRequest(tournamentId, requestId, status);
+    res.json(tournament);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};

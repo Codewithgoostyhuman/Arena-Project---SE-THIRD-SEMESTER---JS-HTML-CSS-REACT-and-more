@@ -10,6 +10,7 @@ import { initializeSocketIO } from './sockets/socketHandler.js';
 import { initializeScheduledJobs } from "./jobs/scheduledJobs.js";
 import path from "path"
 import { fileURLToPath } from "url";
+import "./utils/ensureUploadsDir.js"; // Ensure uploads directory exists
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Load environment variables

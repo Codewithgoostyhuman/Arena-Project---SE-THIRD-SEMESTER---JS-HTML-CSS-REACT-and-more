@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Auth/AuthContext';
-import { GameController, Clock, ShieldCheck, UsersThree, TrendUp, Trophy, CalendarBlank } from "@phosphor-icons/react";
+import { GameController, Clock, ShieldCheck, UsersThree, TrendUp, Trophy, CalendarBlank, ChartBar, Envelope, ClipboardText } from "@phosphor-icons/react";
 import MatchCard from '../reuseableComponents/MatchCard';
+import { apiService } from '../../APIs/apiService';
 
 // StatsCard Component
 // StatsCard Component with Glassmorphism
@@ -482,6 +483,38 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                             loading={LeagueOwnerstats.loading}
                         />
                     </div>
+                    <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl mt-8">
+                        <h2 className="text-xl font-bold mb-6 text-white flex items-center">
+                            <span className="w-1 h-6 bg-green-500 mr-3 rounded-full"></span>
+                            Quick Actions
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button 
+                                onClick={() => setCurrentView('my-leagues')}
+                                className="group relative px-4 py-4 bg-slate-900/50 hover:bg-green-600/20 border border-slate-600 hover:border-green-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
+                            >
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <ShieldCheck size={20} className="text-green-400" /> My Leagues
+                                </span>
+                            </button>
+                            <button 
+                                onClick={() => setCurrentView('my-tournaments')}
+                                className="group relative px-4 py-4 bg-slate-900/50 hover:bg-blue-600/20 border border-slate-600 hover:border-blue-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
+                            >
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <Trophy size={20} className="text-blue-400" /> My Tournaments
+                                </span>
+                            </button>
+                            <button 
+                                onClick={() => setCurrentView('create-league')}
+                                className="group relative px-4 py-4 bg-slate-900/50 hover:bg-indigo-600/20 border border-slate-600 hover:border-indigo-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
+                            >
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <ShieldCheck size={20} className="text-indigo-400" /> Create League
+                                </span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -503,6 +536,12 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
     const [tournaments, setTournaments] = useState([]); // For Sponsor Modal
     const [sponsorshipAmount, setSponsorshipAmount] = useState('');
     const [selectedTournamentId, setSelectedTournamentId] = useState(null);
+    const [sponsorshipType, setSponsorshipType] = useState('perUnit');
+    const [marketInsights, setMarketInsights] = useState(null);
+    const [sponsorshipRequests, setSponsorshipRequests] = useState([]);
+
+    const [myAdvertiserId, setMyAdvertiserId] = useState(null);
+    const [adPreview, setAdPreview] = useState(null); // Added for image preview
 
     useEffect(() => {
         if (currentUser?.role === 'advertiser') {
@@ -513,19 +552,29 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
     const fetchAdvertiserDashboardData = async () => {
         try {
             setAdvertiserLoading(true);
-            const [dashboardRes, balanceRes] = await Promise.all([
-                fetch('http://localhost:5000/api/advertisers/me/dashboard', { credentials: 'include' }),
-                fetch('http://localhost:5000/api/advertisers/me/balance', { credentials: 'include' })
+            const [meData, dashboardData, balanceData, reportData] = await Promise.all([
+                apiService.advertisers.getMe(),
+                apiService.advertisers.getDashboard(),
+                apiService.advertisers.getBalance(),
+                apiService.surveys.getReport()
             ]);
 
-            const dashboardData = await dashboardRes.json();
-            const balanceData = await balanceRes.json();
-
+            // Robustly find advertiser ID
+            const profileId = meData?.advertiserProfile?._id || meData?._id;
+            if (profileId) {
+                setMyAdvertiserId(profileId);
+                setSponsorshipRequests(meData.advertiserProfile?.sponsorshipRequests || meData.sponsorshipRequests || []);
+            } else if (currentUser?.role === 'advertiser' && currentUser?.id) {
+                // Fallback to current user ID if profile ID isn't found (they might be the same in some contexts)
+                setMyAdvertiserId(currentUser.id);
+            }
+            
             setAdvertiserStats({
                 totalSponsored: dashboardData.totalSponsored || 0,
                 pendingRequests: dashboardData.pendingRequests || 0,
                 balance: balanceData.balance || 0
             });
+            setMarketInsights(reportData);
         } catch (error) {
             console.error('Failed to load advertiser data:', error);
         } finally {
@@ -576,7 +625,7 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
         try {
             const formData = new FormData();
             formData.append('title', newAd.title);
-            formData.append('content', newAd.content); // Text content fallback or desc
+            formData.append('content', newAd.content);
             formData.append('fee', newAd.fee);
             if (newAd.image) {
                 formData.append('image', newAd.image);
@@ -584,7 +633,6 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
 
             const res = await fetch('http://localhost:5000/api/advertisers/me/ads', {
                 method: 'POST',
-                // No Content-Type header needed for FormData; browser sets it with boundary
                 body: formData,
                 credentials: 'include'
             });
@@ -592,7 +640,7 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
             if (res.ok) {
                 loadAds();
                 setNewAd({ title: '', content: '', fee: 100, image: null });
-                // Reset file input if possible or rely on state
+                setAdPreview(null);
                 alert("Advertisement Uploaded!");
             } else {
                 const errData = await res.json();
@@ -601,31 +649,26 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
         } catch (err) { console.error(err); }
     };
 
-    // Sponsor Tournament Logic
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setNewAd({ ...newAd, image: file });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAdPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const loadTournaments = async () => {
         try {
-            // Re-using public tournaments endpoint or creating a specific one. 
-            // Since there is no 'get all tournaments' for advertisers specifically, 
-            // we can try fetching available ones or just 'all' if such endpoint exists.
-            // Using /available might be for players, let's try a broader fetch or just assume /api/tournaments (if it existed)
-            // Let's use the player 'available' one as a proxy for 'open' tournaments, or check if we need a new route.
-            // Actually, let's fetch 'available' for now as they are open for registration.
-            // Or better, just fetch ALL tournaments (needs new endpoint or permission?)
-            // Let's assume we can see tournament list.
-            const res = await fetch('http://localhost:5000/api/tournaments/available', { credentials: 'include' }); // This checks player role... might fail 403.
-            // Advertiser role might not have access to '/available'.
-            // Let's try to find a public route or add permissions.
-            // Checking routes: /api/tournaments/:id is shared. List isn't clearly shared for Advertisers.
-            // I'll proceed assuming I might need to fix permissions or endpoint later, 
-            // but for now let's try a player-like fetch or justmock emptiness if fails.
-             if (res.ok) {
-                 const data = await res.json();
-                 setTournaments(data);
-             } else {
-                 console.warn("Could not fetch tournaments (permissions?)");
-                 setTournaments([]); 
-             }
-        } catch (err) { console.error(err); }
+            const data = await apiService.tournaments.getSponsorable();
+            setTournaments(data || []);
+        } catch (err) { 
+            console.error(err);
+            setTournaments([]);
+        }
     };
 
     useEffect(() => {
@@ -634,102 +677,32 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
         }
     }, [showSponsorModal]);
 
-    const handleSponsorSubmit = async (e) => {
-        e.preventDefault();
-        if (!selectedTournamentId) return;
-
-        try {
-            const res = await fetch(`http://localhost:5000/api/advertisers/${currentUser.advertiserProfile?._id || currentUser._id}/sponsored-tournament`, { // Using ID from user state if possible, or letting backend deduce from cookie (but endpoints usually require param ID based on previous code)
-                // Wait, previous code: router.post("/:id/sponsored-tournament" ...
-                // Frontend usually knows its own ID? 
-                // Getting advertiser ID: currentUser.advertiserProfile (if populated)
-                // Let's assume we need to fetch 'me' first or use the path that resolves 'me'.
-                // Actually, backend routes used /:id/sponsored-tournament. 
-                // But we don't have the ID handy in state unless we stored it from dashboard fetch.
-                // Let's fetch /me first or rely on a new /me/sponsor route? 
-                // The existing route is /:id/... 
-                // I will use a slight hack: fetch /me to get ID, then call. Or better, update backend to have /me/sponsor?
-                // Easier: Use the ID we fetched in fetchAdvertiserDashboardData if we stored it? We didn't.
-                // We'll rely on the fact that we can just call /me/dashboard... no, that doesn't help.
-                // Let's assume we can get the ID from the dashboard response? 
-                // Let's refactor fetchAdvertiserDashboardData to store the full advertiser object or ID.
-            });
-            
-            // Actually, better path: Update backend to allow /me/sponsored-tournament or 
-            // just use the ID if we can get it.
-            // For now, I'll assume we can get it.
-            // Let's try to grab the ID from the previous dashboard fetch?
-            // I'll update fetchAdvertiserDashboardData to set the ID.
-            
-        } catch (e) { console.error(e); }
-    }
-
-    // Improving fetchAdvertiserDashboardData to save ID
-    const [myAdvertiserId, setMyAdvertiserId] = useState(null);
-
-    // Override fetchAdvertiserDashboardData
-    const fetchAdvertiserDataAndId = async () => {
-        try {
-            setAdvertiserLoading(true);
-            const [meRes, dashboardRes, balanceRes] = await Promise.all([
-                fetch('http://localhost:5000/api/advertisers/me', { credentials: 'include' }),
-                fetch('http://localhost:5000/api/advertisers/me/dashboard', { credentials: 'include' }),
-                fetch('http://localhost:5000/api/advertisers/me/balance', { credentials: 'include' })
-            ]);
-
-            if (meRes.ok) {
-                const meData = await meRes.json();
-                setMyAdvertiserId(meData.advertiserProfile._id);
-            }
-
-            const dashboardData = await dashboardRes.json();
-            const balanceData = await balanceRes.json();
-
-            setAdvertiserStats({
-                totalSponsored: dashboardData.totalSponsored || 0,
-                pendingRequests: dashboardData.pendingRequests || 0,
-                balance: balanceData.balance || 0
-            });
-        } catch (error) {
-            console.error('Failed to load advertiser data:', error);
-        } finally {
-            setAdvertiserLoading(false);
-        }
-    };
-    
-    // Replace the useEffect to use new function
-    useEffect(() => {
-        if (currentUser?.role === 'advertiser') {
-            fetchAdvertiserDataAndId();
-        }
-    }, [currentUser]);
-
     const submitSponsorship = async (e) => {
         e.preventDefault();
+        if (!selectedTournamentId || !myAdvertiserId) {
+            alert("Identification error. Please refresh.");
+            return;
+        }
+
         try {
-            const res = await fetch(`http://localhost:5000/api/advertisers/${myAdvertiserId}/sponsored-tournament`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tournamentId: selectedTournamentId,
-                    sponsorshipAmount: Number(sponsorshipAmount),
-                    sponsorshipType: 'general' // Default
-                }),
-                credentials: 'include'
+            await apiService.advertisers.addSponsorshipRequest(myAdvertiserId, {
+                tournamentId: selectedTournamentId,
+                proposedAmount: Number(sponsorshipAmount),
+                type: sponsorshipType
             });
 
-            if (res.ok) {
-                alert("Tournament Sponsored Successfully!");
-                setShowSponsorModal(false);
-                setSponsorshipAmount('');
-                setSelectedTournamentId(null);
-                fetchAdvertiserDataAndId();
-            } else {
-                const err = await res.json();
-                alert(`Failed: ${err.error}`);
-            }
-        } catch (err) { console.error(err); }
+            alert("Sponsorship Request Submitted!");
+            setShowSponsorModal(false);
+            setSponsorshipAmount('');
+            setSponsorshipType('perUnit');
+            setSelectedTournamentId(null);
+            fetchAdvertiserDashboardData();
+        } catch (err) { 
+            console.error(err);
+            alert(`Failed: ${err.message}`);
+        }
     };
+
 
 
     if (currentUser?.role === 'advertiser') {
@@ -777,7 +750,7 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                         />
                     </div>
 
-                    <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl">
+                    <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl mb-8">
                         <h2 className="text-xl font-bold mb-6 text-white flex items-center">
                             <span className="w-1 h-6 bg-cyan-500 mr-3 rounded-full"></span>
                             Quick Actions
@@ -787,22 +760,118 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                                 onClick={() => setShowSponsorModal(true)}
                                 className="group relative px-4 py-4 bg-slate-900/50 hover:bg-indigo-600/20 border border-slate-600 hover:border-indigo-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
                             >
-                                <span className="relative z-10">Sponsor New Tournament</span>
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <Trophy size={20} /> Sponsor New Tournament
+                                </span>
                             </button>
                             <button 
                                 onClick={() => setShowManageAds(true)}
                                 className="group relative px-4 py-4 bg-slate-900/50 hover:bg-blue-600/20 border border-slate-600 hover:border-blue-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
                             >
-                                <span className="relative z-10">Manage Advertisements</span>
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <ChartBar size={20} /> Manage Advertisements
+                                </span>
                             </button>
                             <button 
                                 onClick={() => setShowAddFunds(true)}
                                 className="group relative px-4 py-4 bg-slate-900/50 hover:bg-green-600/20 border border-slate-600 hover:border-green-500/50 text-white rounded-xl transition-all duration-300 font-bold overflow-hidden"
                             >
-                                <span className="relative z-10">Add Funds</span>
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    <Trophy size={20} /> Add Funds
+                                </span>
                             </button>
                         </div>
                     </div>
+
+                    {/* Sponsorship Requests Table */}
+                    <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl mb-8">
+                        <h2 className="text-xl font-bold mb-6 text-white flex items-center">
+                            <span className="w-1 h-6 bg-indigo-500 mr-3 rounded-full"></span>
+                            Recent Sponsorship Requests
+                        </h2>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-700">
+                                    <tr>
+                                        <th className="px-4 py-3">Tournament</th>
+                                        <th className="px-4 py-3">Type</th>
+                                        <th className="px-4 py-3">Amount</th>
+                                        <th className="px-4 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700">
+                                    {sponsorshipRequests.map((req, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-4 py-4 font-medium">{req.tournament?.name || 'Unknown Tournament'}</td>
+                                            <td className="px-4 py-4 uppercase text-xs">
+                                                <span className={`px-2 py-1 rounded ${req.type === 'exclusive' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                                                    {req.type || 'perUnit'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 font-mono">${req.proposedAmount?.toFixed(2)}</td>
+                                            <td className="px-4 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                                    req.status === 'accepted' ? 'bg-green-500/20 text-green-400' :
+                                                    req.status === 'declined' ? 'bg-red-500/20 text-red-400' :
+                                                    'bg-yellow-500/20 text-yellow-500'
+                                                }`}>
+                                                    {req.status.toUpperCase()}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {sponsorshipRequests.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" className="text-center py-8 text-slate-500 italic">No sponsorship requests yet.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Market Insights / Survey Data */}
+                    {marketInsights && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl">
+                                <h2 className="text-xl font-bold mb-6 text-white flex items-center">
+                                    <span className="w-1 h-6 bg-purple-500 mr-3 rounded-full"></span>
+                                    Popular Games (Market Data)
+                                </h2>
+                                <div className="space-y-4">
+                                    {marketInsights.gameInterests?.slice(0, 5).map((interest, idx) => (
+                                        <div key={idx} className="relative pt-1">
+                                            <div className="flex mb-2 items-center justify-between text-xs uppercase font-bold text-slate-400">
+                                                <span>Game ID: {interest._id}</span>
+                                                <span>{interest.count} Users</span>
+                                            </div>
+                                            <div className="overflow-hidden h-2 text-xs flex rounded bg-slate-900 border border-slate-700">
+                                                <div 
+                                                    style={{ width: `${(interest.count / advertiserStats.totalSponsored || 1) * 10}%` }} 
+                                                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-8 shadow-xl">
+                                <h2 className="text-xl font-bold mb-6 text-white flex items-center">
+                                    <span className="w-1 h-6 bg-pink-500 mr-3 rounded-full"></span>
+                                    General Interests
+                                </h2>
+                                <div className="flex flex-wrap gap-2">
+                                    {marketInsights.generalInterests?.map((interest, idx) => (
+                                        <div key={idx} className="px-4 py-2 bg-pink-500/10 border border-pink-500/20 rounded-full text-pink-300 text-sm font-bold">
+                                            {interest._id}: <span className="text-white ml-1">{interest.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
 
                 {/* Add Funds Modal */}
                 {showAddFunds && (
@@ -895,13 +964,20 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                                     </div>
                                     <div>
                                         <label className="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Image Banner</label>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*"
-                                            onChange={(e) => setNewAd({...newAd, image: e.target.files[0]})}
-                                            className="w-full text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20"
-                                            required
-                                        />
+                                        <div className="flex items-center gap-4">
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="flex-1 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 transition-all cursor-pointer"
+                                                required
+                                            />
+                                            {adPreview && (
+                                                <div className="w-16 h-16 rounded-xl border border-slate-600 overflow-hidden shrink-0">
+                                                    <img src={adPreview} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <button 
                                         type="submit" 
@@ -920,22 +996,30 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                                 ) : (
                                     <div className="space-y-3">
                                         {adsList.map((ad, idx) => (
-                                            <div key={idx} className="border p-4 rounded flex items-center gap-4">
-                                                {ad.content && ad.content.startsWith('/uploads') && (
+                                            <div key={idx} className="bg-slate-900 border border-slate-700/50 p-4 rounded-2xl flex items-center gap-4 group transition-all hover:border-blue-500/30">
+                                                {(ad.imageUrl || (ad.content && ad.content.startsWith('/uploads'))) && (
                                                     <img 
-                                                        src={`http://localhost:5000${ad.content}`} 
+                                                        src={`http://localhost:5000${ad.imageUrl || ad.content}`} 
                                                         alt={ad.title} 
-                                                        className="w-16 h-16 object-cover rounded"
+                                                        className="w-16 h-16 object-cover rounded-xl border border-slate-700"
                                                     />
                                                 )}
-                                                <div className="flex-1">
-                                                    <p className="font-medium text-gray-900">{ad.title}</p>
-                                                    {!ad.content?.startsWith('/uploads') && <p className="text-sm text-gray-500">{ad.content}</p>}
-                                                    <p className="text-xs text-blue-600 mt-1 uppercase">{ad.type}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm text-gray-500">Impressions: {ad.impressions || 0}</p>
-                                                    <p className="text-sm text-gray-500">Clicks: {ad.clicks || 0}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-white truncate text-lg uppercase tracking-tight">{ad.title}</p>
+                                                    <p className="text-sm text-slate-400 line-clamp-1">{ad.content}</p>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tighter border border-blue-500/20 rounded">
+                                                            {ad.type}
+                                                        </span>
+                                                        <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                            {ad.impressions || 0}
+                                                        </span>
+                                                        <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
+                                                            {ad.clicks || 0}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -974,8 +1058,9 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                                     >
                                         <div className="flex justify-between items-center">
                                             <div>
-                                                <h4 className="font-bold text-white">{t.title}</h4>
-                                                <p className="text-sm text-slate-400">Game: {t.game?.title || t.game}</p>
+                                                <h4 className="font-bold text-white">{t.name}</h4>
+                                                <p className="text-sm text-slate-400">Game: {t.league?.game?.name || 'Standard'}</p>
+                                                <p className="text-sm text-slate-400">League: {t.league?.name}</p>
                                                 <p className="text-sm text-slate-400">Status: {t.status}</p>
                                             </div>
                                             {selectedTournamentId === t._id && <div className="text-blue-400 font-bold">Selected</div>}
@@ -988,8 +1073,32 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                             {/* Sponsorship Amount Form */}
                             {selectedTournamentId && (
                                 <form onSubmit={submitSponsorship} className="mt-6 border-t border-slate-700 pt-4">
+                                    <div className="mb-4">
+                                        <label className="block text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Sponsorship Type</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button 
+                                                type="button"
+                                                onClick={() => setSponsorshipType('perUnit')}
+                                                className={`py-3 rounded-xl border font-bold transition-all ${sponsorshipType === 'perUnit' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-900/50 border-slate-600 text-slate-400'}`}
+                                            >
+                                                Per-Unit
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setSponsorshipType('exclusive')}
+                                                className={`py-3 rounded-xl border font-bold transition-all ${sponsorshipType === 'exclusive' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-900/50 border-slate-600 text-slate-400'}`}
+                                            >
+                                                Exclusive
+                                            </button>
+                                        </div>
+                                        <p className="mt-2 text-xs text-slate-500 italic">
+                                            {sponsorshipType === 'exclusive' 
+                                                ? "Exclusive sponsors get 100% ad share for this tournament." 
+                                                : "Per-unit sponsors share ad space based on contribution."}
+                                        </p>
+                                    </div>
                                     <div className="mb-6">
-                                        <label className="block text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Sponsorship Amount ($)</label>
+                                        <label className="block text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Proposed Amount ($)</label>
                                         <input 
                                             type="number" 
                                             value={sponsorshipAmount} 

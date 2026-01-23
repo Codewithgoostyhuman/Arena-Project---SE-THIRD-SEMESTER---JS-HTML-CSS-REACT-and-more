@@ -14,6 +14,9 @@ import ApplicationsView from './LeagueOwnerApplicationView';
 import LiveMatchesView from '../publicViews/LiveMatchesView';
 import MatchView from './MatchView';
 import TournamentBracketView from './TournamentBracketView'; // NEW: Import TournamentBracketView
+import ManageTournamentView from './ManageTournamentView';
+import MailingListManagement from './MailingListManagement';
+import MarketingSurvey from './MarketingSurvey';
 
 export default function AuthenticatedViews({ 
     currentView, 
@@ -86,6 +89,16 @@ export default function AuthenticatedViews({
                 />
             ) : null;
         
+        case 'manage-tournament':
+            return (currentUser.role === 'leagueOwner' || currentUser.role === 'operator') && selectedTournamentId ? (
+                <ManageTournamentView 
+                    tournamentId={selectedTournamentId}
+                    setCurrentView={setCurrentView}
+                />
+            ) : (
+                <DashboardView setCurrentView={setCurrentView} />
+            );
+        
         case 'applications':
             return currentUser.role === 'leagueOwner' ? (
                 <ApplicationsView setCurrentView={setCurrentView} />
@@ -120,6 +133,12 @@ export default function AuthenticatedViews({
             ) : (
                 <DashboardView setCurrentView={setCurrentView} />
             );
+        
+        case 'mailing-lists':
+            return <MailingListManagement />;
+        
+        case 'survey':
+            return <MarketingSurvey />;
         
         default:
             return <DashboardView setCurrentView={setCurrentView} setSelectedMatchId={setSelectedMatchId} />;

@@ -58,6 +58,11 @@ const UserSchema = new mongoose.Schema({
   advertiserProfile: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Advertiser"
+  },
+  
+  marketingOptIn: {
+    type: Boolean,
+    default: false
   }
 
 }, {

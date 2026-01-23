@@ -82,12 +82,13 @@ export const removeLeagueOfInterest = async (req, res) => {
 
 export const addSponsorshipRequest = async (req, res) => {
   try {
-    const { tournamentId, leagueId, proposedAmount } = req.body;
+    const { tournamentId, leagueId, proposedAmount, type } = req.body;
     const ad = await advertiserService.addSponsorshipRequest(
       req.params.id,
       tournamentId,
       leagueId,
-      proposedAmount
+      proposedAmount,
+      type
     );
     res.json(ad);
   } catch (err) {
@@ -192,7 +193,7 @@ export const uploadAd = async (req, res) => {
     console.log("Uploading ad, body:", req.body, "file:", req.file);
     const adData = {
       ...req.body,
-      content: req.file ? `/uploads/${req.file.filename}` : req.body.content 
+      imageUrl: req.file ? `/uploads/${req.file.filename}` : null
     };
     const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
     const result = await advertiserService.uploadAd(ad.advertiserProfile._id, adData);
@@ -205,11 +206,27 @@ export const uploadAd = async (req, res) => {
 
 export const getMyAds = async (req, res) => {
   try {
+    console.log("getMyAds: Request received for user", req.user?._id);
+    if (!req.user) throw new Error("User not attached to request");
+
     const ad = await advertiserService.getAdvertiserByUserId(req.user._id);
-    const ads = await advertiserService.getAds(ad.advertiserProfile._id);
+    console.log("getMyAds: Advertiser found", ad?.advertiserProfile?._id);
+
+    if (!ad?.advertiserProfile) throw new Error("Advertiser profile missing");
+
+    let ads = [];
+    try {
+        ads = await advertiserService.getAds(ad.advertiserProfile._id);
+    } catch (innerErr) {
+        console.error("getMyAds: advertiserService.getAds FAILED:", innerErr);
+        throw innerErr; // Re-throw to be caught by outer block
+    }
+    console.log("getMyAds: Ads fetched", ads?.length);
+    
     res.json(ads);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("getMyAds error:", err);
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 };
 

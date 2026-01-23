@@ -24,7 +24,8 @@ export default class Tournament {
       .populate('winners', 'name email')
       .populate('applications', 'user status createdAt')
       .populate('matches')
-      .populate('exclusiveSponsor', 'name');
+      .populate('exclusiveSponsor', 'companyName')
+      .populate('sponsorshipRequests.advertiser', 'companyName');
     if (!tournament) throw new Error("Tournament not found");
     return tournament;
   }

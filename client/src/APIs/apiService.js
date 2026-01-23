@@ -126,6 +126,7 @@ export const apiService = {
         // Player routes
         getAvailable: () => apiService.request('/tournaments/available'),
         getPlayerTournaments: () => apiService.request('/tournaments/my-tournaments'),
+        getSponsorable: () => apiService.request('/tournaments/sponsorable'),
         
         // Owner/Operator routes
         create: (tournamentData) => 
@@ -378,5 +379,51 @@ export const apiService = {
         }),
 
         getMatchAds: (matchId) => apiService.request(`/matches/${matchId}/ads`)
+    },
+
+    // ==================== ADVERTISER ENDPOINTS ====================
+    advertisers: {
+        getMe: () => apiService.request('/advertisers/me'),
+        getDashboard: () => apiService.request('/advertisers/me/dashboard'),
+        getBalance: () => apiService.request('/advertisers/me/balance'),
+        getAds: () => apiService.request('/advertisers/me/ads'),
+        uploadAd: (formData) => apiService.request('/advertisers/me/ads', {
+            method: 'POST',
+            body: formData, // FormData doesn't need Content-Type header manually
+            headers: { 'Content-Type': null } 
+        }),
+        addSponsorshipRequest: (advertiserId, data) => 
+            apiService.request(`/advertisers/${advertiserId}/sponsorship`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+        updateSponsorshipStatus: (advertiserId, index, status) =>
+            apiService.request(`/advertisers/${advertiserId}/sponsorship/${index}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status })
+            }),
+    },
+
+    // ==================== MAILING LIST ENDPOINTS ====================
+    mailingLists: {
+        getMyLists: () => apiService.request('/mailing-lists/me'),
+        subscribe: (listName) => apiService.request('/mailing-lists/subscribe', {
+            method: 'POST',
+            body: JSON.stringify({ listName })
+        }),
+        unsubscribe: (listName) => apiService.request('/mailing-lists/unsubscribe', {
+            method: 'POST',
+            body: JSON.stringify({ listName })
+        }),
+    },
+
+    // ==================== SURVEY ENDPOINTS ====================
+    surveys: {
+        submit: (data) => apiService.request('/surveys/submit', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        getMe: () => apiService.request('/surveys/me'),
+        getReport: () => apiService.request('/surveys/report'),
     },
 };

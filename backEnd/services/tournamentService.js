@@ -206,7 +206,7 @@ class TournamentService {
       applicationEndDate,
       playStartDate,
       playEndDate,
-      status: 'open_for_applications'
+      status: 'planning'
     });
 
     await tournament.save();
@@ -597,6 +597,64 @@ class TournamentService {
 
   async getTournamentLeaderboard(tournamentId) {
     return await Tournament.getTournamentLeaderboard(tournamentId);
+  }
+  async getSponsorableTournaments() {
+    return await TournamentModel.find({
+      status: 'seeking_sponsors',
+      exclusiveSponsor: { $exists: false }
+    })
+      .populate('league', 'name game')
+      .populate({ path: 'league', populate: { path: 'game', select: 'name type' } })
+      .sort({ playStartDate: 1 });
+  }
+
+  async updateTournamentStatus(tournamentId, status) {
+    const tournament = await TournamentModel.findById(tournamentId);
+    if (!tournament) throw new Error("Tournament not found");
+
+    const validStatuses = [
+      "planning", 
+      "seeking_sponsors", 
+      "open_for_applications", 
+      "upcoming", 
+      "ongoing", 
+      "finished"
+    ];
+
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Invalid status: ${status}`);
+    }
+
+    tournament.status = status;
+    await tournament.save();
+    return tournament;
+  }
+
+  async manageSponsorshipRequest(tournamentId, requestId, status) {
+    const tournament = await TournamentModel.findById(tournamentId);
+    if (!tournament) throw new Error("Tournament not found");
+
+    const request = tournament.sponsorshipRequests.id(requestId);
+    if (!request) throw new Error("Sponsorship request not found");
+
+    request.status = status;
+    request.respondedAt = new Date();
+
+    if (status === 'accepted' || status === 'selected') {
+      if (request.type === 'exclusive') {
+        tournament.exclusiveSponsor = request.advertiser;
+        // Auto-decline other pending requests if this is exclusive
+        tournament.sponsorshipRequests.forEach(r => {
+          if (r._id.toString() !== requestId && r.status === 'pending') {
+            r.status = 'declined';
+            r.respondedAt = new Date();
+          }
+        });
+      }
+    }
+
+    await tournament.save();
+    return tournament;
   }
 }
 

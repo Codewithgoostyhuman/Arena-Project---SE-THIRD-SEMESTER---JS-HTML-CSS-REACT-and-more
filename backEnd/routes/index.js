@@ -20,6 +20,8 @@ import interestGroupRoutes from "./interestGroupRoutes.js";
 import arenaRoutes from "./arenaRoutes.js";
 import publicRoutes from "./publicRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
+import mailingListRoutes from "./mailingListRoutes.js";
+import surveyRoutes from "./surveyRoutes.js";
 import socketMiddleware from "../middleware/socketMiddleWare.js";
 const router = express.Router();
 // Make Socket.IO available in all routes
@@ -135,6 +137,18 @@ router.use("/public", publicRoutes);
  * /api/notifications/*
  */
 router.use("/notifications", notificationRoutes);
+
+/**
+ * Mailing List routes
+ * /api/mailing-lists/*
+ */
+router.use("/mailing-lists", mailingListRoutes);
+
+/**
+ * Survey routes
+ * /api/surveys/*
+ */
+router.use("/surveys", surveyRoutes);
 
 // ==========================================
 // HEALTH CHECK ENDPOINT

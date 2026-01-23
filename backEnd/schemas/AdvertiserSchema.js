@@ -54,6 +54,11 @@ const AdvertiserSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    type: {
+      type: String,
+      enum: ['exclusive', 'perUnit'],
+      default: 'perUnit'
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'declined'],
@@ -77,7 +82,11 @@ const AdvertiserSchema = new mongoose.Schema({
       required: false // Optional for now as legacy data might not have it, or set true if new
     },
     content: {
-      type: String, // URL or text content
+      type: String, // URL or text content (Description)
+      required: false
+    },
+    imageUrl: {
+      type: String, // Path to the uploaded image
       required: false
     },
     type: { 

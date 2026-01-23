@@ -47,6 +47,12 @@ export default function Navigation({ currentView, setCurrentView, showMobileMenu
                                         <NavButton onClick={() => setCurrentView('leagues')} active={currentView === 'leagues'}>
                                             Leagues
                                         </NavButton>
+                                        <NavButton onClick={() => setCurrentView('mailing-lists')} active={currentView === 'mailing-lists'}>
+                                            Preferences
+                                        </NavButton>
+                                        <NavButton onClick={() => setCurrentView('survey')} active={currentView === 'survey'}>
+                                            Interests
+                                        </NavButton>
                                     </>
                                 )}
 
@@ -137,7 +143,12 @@ export default function Navigation({ currentView, setCurrentView, showMobileMenu
                                 </div>
 
                                 <div className="flex items-center pl-4 border-l border-white/10 ml-4 space-x-3">
-                                    <span className="text-sm font-medium text-slate-300">{currentUser.name}</span>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-sm font-medium text-slate-300">{currentUser.name}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter text-indigo-400 bg-indigo-500/10 px-1.5 rounded leading-tight border border-indigo-500/20">
+                                            {currentUser.role === 'leagueOwner' ? 'OWNER' : currentUser.role}
+                                        </span>
+                                    </div>
                                     <button
                                         onClick={logout}
                                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"

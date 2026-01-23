@@ -171,6 +171,14 @@ router.get(
   tournamentController.getTournamentPlayers
 );
 
+// Get tournaments seeking sponsors (NEW)
+router.get(
+  "/sponsorable",
+  authenticate,
+  authorizeRoles(Roles.ADVERTISER),
+  tournamentController.getSponsorableTournaments
+);
+
 // Get tournament by ID (NEW)
 router.get(
   "/:tournamentId",
@@ -190,6 +198,22 @@ router.get(
   "/:tournamentId/leaderboard",
   authenticate,
   tournamentController.getTournamentLeaderboard
+);
+
+// Update tournament status (NEW)
+router.patch(
+  "/:tournamentId/status",
+  authenticate,
+  authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
+  tournamentController.updateTournamentStatus
+);
+
+// Manage sponsorship request (NEW)
+router.patch(
+  "/:tournamentId/sponsorship/:requestId",
+  authenticate,
+  authorizeRoles(Roles.LEAGUE_OWNER, Roles.OPERATOR),
+  tournamentController.manageSponsorshipRequest
 );
 
 export default router;

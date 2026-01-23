@@ -56,13 +56,13 @@ class AdvertiserService {
   }
 
   // Add sponsorship request
-  async addSponsorshipRequest(id, tournamentId = null, leagueId = null, proposedAmount = null) {
+  async addSponsorshipRequest(id, tournamentId = null, leagueId = null, proposedAmount = null, type = 'perUnit') {
     const advertiser = await AdvertiserDomain.getById(id);
     if (advertiser.status !== "active") {
       throw new Error("Only active advertisers can submit sponsorship requests");
     }
 
-    return await AdvertiserDomain.addSponsorshipRequest(id, tournamentId, leagueId, proposedAmount);
+    return await AdvertiserDomain.addSponsorshipRequest(id, tournamentId, leagueId, proposedAmount, type);
   }
 
   // Update sponsorship request status
