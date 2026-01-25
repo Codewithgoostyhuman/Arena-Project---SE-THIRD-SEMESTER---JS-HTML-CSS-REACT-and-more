@@ -49,6 +49,9 @@ if (process.env.NODE_ENV !== "production") {
 
 // Mount all API routes under /api prefix
 app.use("/api", router);
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Serve React frontend
 const reactBuildPath = path.join(__dirname, "../client/dist"); // Vite
 // const reactBuildPath = path.join(__dirname, "../client/build"); // CRA
@@ -58,9 +61,6 @@ app.use(express.static(reactBuildPath));
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(reactBuildPath, "index.html"));
 });
-
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // Root endpoint
@@ -104,6 +104,13 @@ const MONGO_URI = process.env.MONGO_URI;
 const server = createServer(app);
 const io = initializeSocketIO(server);
 app.set('io', io);
+
+// Attach io to req for controllers
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 mongoose
   .connect(MONGO_URI)
   .then(() => {

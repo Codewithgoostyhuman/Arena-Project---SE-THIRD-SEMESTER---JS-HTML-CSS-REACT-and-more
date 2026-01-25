@@ -13,23 +13,30 @@ export const SocketProvider = ({ children }) => {
     const socketRef = useRef(null);
 
     useEffect(() => {
-        if (!currentUser) {
-            if (socketRef.current) {
-                console.log('🔌 User logged out, disconnecting socket');
+        // Allow guest connections (no currentUser check here)
+        
+        if (socketRef.current) {
+            // If user changes (login/logout), we might want to re-authenticate or reconnect
+            // For now, let's keep it simple: if socket exists and user logs in, we auth.
+            // If user logs out, we might want to disconnect/reconnect as guest.
+            
+            if (currentUser && !socketRef.current.userId) {
+                 socketRef.current.emit('authenticate', currentUser._id);
+                 socketRef.current.userId = currentUser._id;
+            } else if (!currentUser && socketRef.current.userId) {
+                // User logged out, disconnect and reconnect as guest
+                console.log('🔌 User logged out, switching to guest connection');
                 socketRef.current.disconnect();
                 socketRef.current = null;
                 setSocket(null);
                 setIsConnected(false);
+                // The effect will re-run and connect as guest
+                return;
             }
             return;
         }
 
-        if (socketRef.current) {
-            // Already connected or connecting
-            return;
-        }
-
-        console.log('🔌 Initializing socket connection for user:', currentUser.name);
+        console.log(currentUser ? `🔌 Initializing socket connection for user: ${currentUser.name}` : '🔌 Initializing guest socket connection');
 
         const newSocket = io(SOCKET_URL, {
             reconnection: true,
@@ -45,7 +52,10 @@ export const SocketProvider = ({ children }) => {
         newSocket.on('connect', () => {
             console.log('✅ Socket connected:', newSocket.id);
             setIsConnected(true);
-            newSocket.emit('authenticate', currentUser._id);
+            if (currentUser) {
+                newSocket.emit('authenticate', currentUser._id);
+                newSocket.userId = currentUser._id; // Local tracking
+            }
         });
 
         newSocket.on('disconnect', () => {
@@ -59,10 +69,7 @@ export const SocketProvider = ({ children }) => {
         });
 
         return () => {
-             // Cleanup handled by dependency change or unmount
-             // We don't necessarily want to disconnect on every re-render if strict mode is on, 
-             // but checking !currentUser above handles logouts.
-             // On strict mode unmount, it might disconnect/reconnect which is fine.
+             // Cleanup if needed
         };
     }, [currentUser]);
 

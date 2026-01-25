@@ -194,7 +194,7 @@ router.post(
 router.put(
   "/:id/sponsorship/:index",
   authenticate,
-  authorizeRoles(Roles.OPERATOR, Roles.ADMIN),
+  authorizeRoles(Roles.OPERATOR, Roles.ADMIN, Roles.LEAGUE_OWNER),
   advertiserController.updateSponsorshipRequest
 );
 

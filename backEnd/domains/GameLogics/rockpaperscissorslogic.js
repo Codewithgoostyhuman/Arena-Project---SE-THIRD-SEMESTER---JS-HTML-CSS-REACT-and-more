@@ -5,7 +5,7 @@ class RockPaperScissorsLogic {
   /**
    * Initialize a new Rock Paper Scissors game
    */
-  initializeGame(players) {
+  initializeGame(players, roundNumber = 1) {
     return {
       players: {
         [players[0]._id]: {
@@ -20,8 +20,9 @@ class RockPaperScissorsLogic {
         }
       },
       playerIds: [players[0]._id, players[1]._id],
+      playerIds: [players[0]._id, players[1]._id],
       currentPlayer: null, // Both play simultaneously
-      round: 1,
+      round: roundNumber,
       gameOver: false,
       winner: null,
       result: null, // 'player1_wins', 'player2_wins', 'draw'

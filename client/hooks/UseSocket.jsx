@@ -64,6 +64,15 @@ export const useMatchSocket = (matchId) => {
       console.log('✋ Player ready:', data);
     });
 
+    // Listen for partial updates
+    socket.on('match-update', (data) => {
+      console.log('🔄 Match update:', data);
+      setMatchState(prev => ({
+        ...prev,
+        ...data
+      }));
+    });
+
     // Error handling
     socket.on('move-error', (error) => {
       console.error('❌ Move error:', error);

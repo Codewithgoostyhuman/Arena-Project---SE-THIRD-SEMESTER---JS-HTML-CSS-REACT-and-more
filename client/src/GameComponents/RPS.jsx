@@ -11,6 +11,70 @@ const RPS = ({ matchId, onMatchUpdate }) => {
   const [makingMove, setMakingMove] = useState(false);
   const [selectedMove, setSelectedMove] = useState(null);
 
+  // State for result overlay
+  const [lastRoundResult, setLastRoundResult] = useState(null);
+  const [showResultOverlay, setShowResultOverlay] = useState(false);
+  
+  // Use a ref to track the last processed game to avoid showing same result twice
+  const lastProcessedGameId = React.useRef(null);
+
+  // Effect to detect new round completion
+  useEffect(() => {
+    if (match && match.games && match.games.length > 0) {
+        // Check local storage or ref to see if we just finished a round
+        // For simplicity, we compare with current gameState.round
+        // If match.games.length >= gameState.round, it means the previous round finished
+        
+        const lastGame = match.games[match.games.length - 1];
+        if (lastGame.completedAt && !showResultOverlay) {
+             // Basic check: if we haven't shown this result yet?
+             // We can use a timestamp check or just react to change.
+             // Better: Store processedGameId
+        }
+    }
+  }, [match, gameState, showResultOverlay]); // Added dependencies to satisfy linter
+
+  useEffect(() => {
+    if (!match?.games?.length) return;
+
+    // Safe user ID extraction for effect
+    const currentUserId = currentUser?._id?.toString();
+    if (!currentUserId) return;
+
+    const lastGame = match.games[match.games.length - 1];
+    
+    // If we haven't shown this game's result yet
+    if (lastGame._id !== lastProcessedGameId.current && lastGame.completedAt) {
+        lastProcessedGameId.current = lastGame._id;
+        
+        // Determine result of THIS game/round
+        let resultType = 'draw';
+        let winnerName = null;
+        
+        if (lastGame.winner) {
+            resultType = lastGame.winner === currentUserId ? 'win' : 'loss';
+            winnerName = match.players.find(p => p._id === lastGame.winner)?.name;
+        } else {
+            // It's a draw
+        }
+        
+        setLastRoundResult({
+            type: resultType,
+            winnerName,
+            round: lastGame.gameNumber || match.games.length,
+            player1Move: lastGame.gameState?.choices?.[match.players[0]._id],
+            player2Move: lastGame.gameState?.choices?.[match.players[1]._id]
+        });
+        
+        setShowResultOverlay(true);
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            setShowResultOverlay(false);
+        }, 3000);
+    }
+  }, [match, currentUser]);
+
   const moves = [
     { name: 'Rock', icon: '🪨', value: 'rock' },
     { name: 'Paper', icon: '📄', value: 'paper' },
@@ -165,11 +229,40 @@ const RPS = ({ matchId, onMatchUpdate }) => {
   const hasPlayerMoved = userId ? (gameState.moves?.[userId] !== undefined) : false;
   const bothPlayersMoved = Object.keys(gameState.moves || {}).length === 2;
 
+
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto relative">
+      {/* Result Overlay */}
+      {showResultOverlay && lastRoundResult && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm rounded-xl animate-in fade-in zoom-in duration-300">
+             <div className="text-center p-8">
+                <h2 className={`text-4xl font-black mb-4 uppercase tracking-tighter ${
+                    lastRoundResult.type === 'win' ? 'text-green-500' :
+                    lastRoundResult.type === 'loss' ? 'text-red-500' :
+                    'text-yellow-400'
+                }`}>
+                    {lastRoundResult.type === 'win' ? 'You Won!' :
+                     lastRoundResult.type === 'loss' ? 'You Lost!' :
+                     'Draw!'}
+                </h2>
+                
+                {lastRoundResult.winnerName && lastRoundResult.type === 'loss' && (
+                    <p className="text-slate-400 text-lg mb-4">{lastRoundResult.winnerName} wins this round</p>
+                )}
+                
+                <div className="flex justify-center gap-8 mt-6">
+                    {/* Show moves if available */}
+                     {/* This would require reconstructing moves from gameState history which might be messy here, 
+                         so we stick to the main result message. */}
+                </div>
+             </div>
+        </div>
+      )}
+
       {/* Game Status */}
       <div className="mb-6 text-center">
-        {gameState.winner !== null ? (
+        {match.winner ? (
           <div className="text-2xl font-bold text-green-400">
             {match.players?.[gameState.winner]?.name || 'Player'} Wins! 🎉
           </div>

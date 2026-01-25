@@ -279,7 +279,23 @@ class TournamentService {
 
   async recordMatchResult(tournamentId, matchId, winnerId, isDraw) {
     // Delegate to match service to ensure stats are updated correctly
-    return await matchGameService.resolveMatch(matchId, winnerId, isDraw);
+    const match = await matchGameService.resolveMatch(matchId, winnerId, isDraw);
+
+    // Check if tournament is ready to complete
+    const tournament = await TournamentModel.findById(tournamentId).populate('matches');
+    if (tournament && tournament.status !== 'finished') {
+      const allFinished = tournament.matches.every(m => m.status === 'finished');
+      
+      if (allFinished) {
+        console.log(`🏆 Auto-completing tournament ${tournamentId} as all matches are finished.`);
+        // Run asynchronously to not block response
+        this.completeTournament(tournamentId).catch(err => 
+          console.error("Failed to auto-complete tournament:", err)
+        );
+      }
+    }
+
+    return match;
   }
 
   async startTournament(tournamentId) {
@@ -396,6 +412,21 @@ class TournamentService {
     tournament.status = "finished";
     tournament.winners = [winnerId];
     await tournament.save();
+
+    // NOTIFY ALL PLAYERS
+    const winnerName = tournament.players.find(p => p._id.toString() === winnerId)?.name || 'Unknown';
+    
+    // Create notifications for all participants
+    const notifications = tournament.players.map(player => ({
+      user: player._id,
+      type: 'tournament_results',
+      title: 'Tournament Ended',
+      message: `The tournament ${tournament.name} has ended! The winner is ${winnerName}!`,
+      relatedTournament: tournament._id,
+      relatedLeague: tournament.league._id
+    }));
+
+    await notificationService.createMany(notifications);
 
     return tournament;
   }
@@ -641,16 +672,21 @@ class TournamentService {
     request.respondedAt = new Date();
 
     if (status === 'accepted' || status === 'selected') {
-      if (request.type === 'exclusive') {
-        tournament.exclusiveSponsor = request.advertiser;
-        // Auto-decline other pending requests if this is exclusive
-        tournament.sponsorshipRequests.forEach(r => {
-          if (r._id.toString() !== requestId && r.status === 'pending') {
-            r.status = 'declined';
-            r.respondedAt = new Date();
-          }
-        });
-      }
+      // Delegate to AdvertiserService to handle funds and status sync
+      // This ensures business logic (deductions, adding to sponsored list) is executed
+      const advertiserService = (await import("./advertiserService.js")).default;
+      await advertiserService.updateSponsorshipRequestByTournament(request.advertiser, tournamentId, status);
+      
+      // Reload tournament to return fresh state (AdvertiserService updates it internally)
+      const freshTournament = await TournamentModel.findById(tournamentId);
+      return freshTournament;
+    } else {
+        // For rejections, we can just update status locally or still delegate
+        // Delegating is safer for consistency
+        const advertiserService = (await import("./advertiserService.js")).default;
+        await advertiserService.updateSponsorshipRequestByTournament(request.advertiser, tournamentId, status);
+        
+        return await TournamentModel.findById(tournamentId);
     }
 
     await tournament.save();

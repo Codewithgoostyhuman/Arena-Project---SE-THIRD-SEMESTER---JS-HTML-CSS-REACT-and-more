@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../Auth/AuthContext';
 import {useSocket} from "../../../hooks/UseSocket"
 
-const MatchChat = ({ matchId, sendMessage }) => {
+const MatchChat = ({ matchId, sendMessage, isSpectator }) => {
     const { currentUser } = useAuth();
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
@@ -75,25 +75,31 @@ const MatchChat = ({ matchId, sendMessage }) => {
                 <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-3 border-t border-gray-700 bg-gray-900">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder={isConnected ? "Type a message..." : "Reconnecting..."}
-                        disabled={!isConnected}
-                        className="flex-1 bg-gray-800 border-none rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
-                    />
-                    <button 
-                        type="submit"
-                        disabled={!message.trim() || !isConnected}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm font-semibold transition"
-                    >
-                        Send
-                    </button>
+            {isSpectator ? (
+                <div className="p-3 border-t border-gray-700 bg-gray-900 text-center text-xs text-gray-500 italic">
+                    Spectator Mode - Chat Disabled
                 </div>
-            </form>
+            ) : (
+                <form onSubmit={handleSubmit} className="p-3 border-t border-gray-700 bg-gray-900">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder={isConnected ? "Type a message..." : "Reconnecting..."}
+                            disabled={!isConnected}
+                            className="flex-1 bg-gray-800 border-none rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                        />
+                        <button 
+                            type="submit"
+                            disabled={!message.trim() || !isConnected}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm font-semibold transition"
+                        >
+                            Send
+                        </button>
+                    </div>
+                </form>
+            )}
         </div>
     );
 };

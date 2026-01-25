@@ -136,9 +136,15 @@
     isFinals: {
       type: Boolean,
       default: false
-    }
+    },
+
+    // Ready state tracking
+    playersReady: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }]
     
-  }, { 
+  }, {  
     timestamps: true 
   });
 

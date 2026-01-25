@@ -99,6 +99,38 @@ export const addSponsorshipRequest = async (req, res) => {
 export const updateSponsorshipRequest = async (req, res) => {
   try {
     const { requestIndex, status } = req.body;
+    
+    // Authorization Check for League Owners
+    if (req.user.role === 'leagueOwner') {
+       // We need to verify this sponsorship request belongs to a tournament/league they own
+       // Since the service logic is encapsulated, we might need to fetch the advertiser first to get the request details
+       const advertiserService = (await import("../services/advertiserService.js")).default;
+       const advertiser = await advertiserService.getAdvertiserById(req.params.id);
+       
+       const request = advertiser.sponsorshipRequests[requestIndex];
+       if (!request) throw new Error("Request not found");
+       
+       // Verify ownership logic would go here
+       // For now, relying on the fact that they can only see requests for their tournaments in the UI
+       // Ideally, we should fetch the tournament and check its owner.
+       // Let's do a quick check if possible, or assume UI sends valid index meant for them.
+       // STRICT CHECK: Fetch tournament
+       if (request.tournament) {
+          const Tournament = (await import("../schemas/TournamentSchema.js")).default;
+          const League = (await import("../schemas/LeagueSchema.js")).default;
+          
+          const tournament = await Tournament.findById(request.tournament);
+          if (!tournament) throw new Error("Tournament not found");
+          
+          const league = await League.findById(tournament.league);
+          if (!league) throw new Error("League not found");
+          
+          if (league.owner.toString() !== req.user._id.toString()) {
+             throw new Error("You do not own this tournament");
+          }
+       }
+    }
+
     const ad = await advertiserService.updateSponsorshipRequest(
       req.params.id,
       requestIndex,

@@ -149,7 +149,7 @@ export const finishMatch = async (req, res) => {
 };
 
 /**
- * Start a match
+ * Start a match (or mark player as ready)
  * POST /api/matches/:id/start
  */
 export const startMatch = async (req, res) => {
@@ -166,66 +166,90 @@ export const startMatch = async (req, res) => {
       return res.status(400).json({ message: 'Invalid match ID format' });
     }
     
-    // Find match
-    console.log('Fetching match from database...');
+    // Find match with players
     const match = await Match.findById(id)
       .populate('players')
       .populate('game');
     
     if (!match) {
-      console.log('Match not found');
       return res.status(404).json({ message: 'Match not found' });
     }
-    
-    console.log('Match found:', {
-      id: match._id,
-      status: match.status,
-      players: match.players.map(p => ({ id: p._id, name: p.name })),
-      game: match.game?.name
-    });
-    
-    // Verify user is a player in this match
+
+    // Check if user is a player
     const isPlayer = match.players.some(p => p._id.toString() === userId.toString());
-    
     if (!isPlayer) {
-      console.log('User is not a player in this match');
       return res.status(403).json({ message: 'You are not a player in this match' });
     }
     
-    console.log('User verified as player, starting match...');
+    // If match already live, just return it
+    if (match.status === 'live') {
+      const liveState = await matchGameService.getMatchState(id);
+       // Ensure everyone is in sync
+      if (req.io) {
+        req.io.notifyMatch(id, 'match-state', liveState);
+      }
+      return res.json({ message: 'Match is already live', match: liveState });
+    }
     
-    // Start the match via service
-    const startedMatch = await matchGameService.startMatch(id);
+    // Add player to playersReady if not present
+    // Use findByIdAndUpdate to ensure atomicity
+    const updatedMatch = await Match.findByIdAndUpdate(
+      id,
+      { $addToSet: { playersReady: userId } },
+      { new: true }
+    ).populate('players').populate('game');
     
-    console.log('Match started successfully, populating data...');
+    const readyCount = updatedMatch.playersReady.length;
+    const totalPlayers = updatedMatch.players.length;
     
-    // Populate currentTurn before sending response
-    await startedMatch.populate('currentTurn', 'name');
+    console.log(`Player ready. ${readyCount}/${totalPlayers} ready.`);
     
-    console.log('=== MATCH START SUCCESS ===');
-    
-    res.json({
-      message: 'Match started',
-      match: startedMatch
-    });
+    // Notify room that player is ready
+    if (req.io) {
+      req.io.notifyMatch(id, 'player-ready', { 
+        playerId: userId,
+        readyCount,
+        totalPlayers
+      });
+      // Also send updated partial state so UI updates
+       req.io.notifyMatch(id, 'match-update', {
+         playersReady: updatedMatch.playersReady
+       });
+    }
+
+    // If all players ready, START THE MATCH
+    if (readyCount >= totalPlayers) {
+      console.log('All players ready! Starting match...');
+      
+      const startedMatch = await matchGameService.startMatch(id);
+      await startedMatch.populate('currentTurn', 'name');
+      
+      // Notify everyone match is live
+      const fullState = await matchGameService.getMatchState(id);
+      if (req.io) {
+        req.io.notifyMatch(id, 'match-state', fullState);
+      }
+      
+      return res.json({
+        message: 'Match started',
+        match: startedMatch,
+        started: true
+      });
+    } else {
+      return res.json({
+        message: 'Waiting for opponent',
+        match: updatedMatch,
+        started: false,
+        readyCount,
+        totalPlayers
+      });
+    }
     
   } catch (error) {
-    console.error('=== MATCH START ERROR ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Match ID:', id);
-    console.error('User ID:', userId);
-    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-    console.error('=========================');
-    
+    console.error('=== MATCH START ERROR ===', error);
     res.status(500).json({ 
-      message: 'Error starting match', 
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? {
-        stack: error.stack,
-        type: error.constructor.name
-      } : undefined
+      message: 'Error handling match start', 
+      error: error.message 
     });
   }
 };
@@ -444,6 +468,7 @@ const fetchRandomAds = async (limit = 3) => {
       _id: '$ads._id',
       title: '$ads.title',
       content: '$ads.content',
+      imageUrl: '$ads.imageUrl',
       type: '$ads.type',
       companyName: '$companyName',
       advertiserId: '$_id'

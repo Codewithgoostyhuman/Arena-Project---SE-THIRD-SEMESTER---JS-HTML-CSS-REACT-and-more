@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { GameController, Clock, ShieldCheck, UsersThree, TrendUp } from '@phosphor-icons/react';
 import StatsCard from '../reuseableComponents/StatsCard';
+import { MathOperations, ArrowLeft } from '@phosphor-icons/react';
+import RatingFormulasView from './RatingFormulasView';
+
 // Main Operator Dashboard Component
 export default function OperatorDashboard() {
+    const [currentView, setCurrentView] = useState('dashboard');
     const [stats, setStats] = useState({
         pendingUsers: 0,
         totalGames: 0,
@@ -14,8 +18,10 @@ export default function OperatorDashboard() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        loadDashboardStats();
-    }, []);
+        if (currentView === 'dashboard') {
+            loadDashboardStats();
+        }
+    }, [currentView]);
 
     const loadDashboardStats = async () => {
         try {
@@ -50,6 +56,20 @@ export default function OperatorDashboard() {
             setLoading(false);
         }
     };
+
+    if (currentView === 'rating-formulas') {
+        return (
+            <div>
+                <button 
+                    onClick={() => setCurrentView('dashboard')}
+                    className="flex items-center text-gray-600 hover:text-gray-900 px-8 pt-6 mb-2"
+                >
+                    <ArrowLeft className="mr-2" /> Back to Dashboard
+                </button>
+                <RatingFormulasView />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -106,12 +126,19 @@ export default function OperatorDashboard() {
 
             <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <button className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
                         Manage Users
                     </button>
                     <button className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                         Manage Games
+                    </button>
+                    <button 
+                        onClick={() => setCurrentView('rating-formulas')}
+                        className="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                    >
+                        <MathOperations size={20} />
+                        Rating Formulas
                     </button>
                     <button className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
                         View Statistics

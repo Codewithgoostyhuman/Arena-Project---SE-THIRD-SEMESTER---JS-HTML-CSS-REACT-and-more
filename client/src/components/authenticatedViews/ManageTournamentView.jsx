@@ -124,7 +124,7 @@ export default function ManageTournamentView({ tournamentId, setCurrentView }) {
                                 <UsersThree size={18} /> Open Registration
                             </button>
                         )}
-                         {(tournament.status === 'open_for_applications' || tournament.status === 'upcoming') && (
+                        {(tournament.status === 'open_for_applications' || tournament.status === 'upcoming') && (
                             <button 
                                 onClick={async () => {
                                     if(confirm('Kickoff will generate matches. Proceed?')) {
@@ -140,6 +140,24 @@ export default function ManageTournamentView({ tournamentId, setCurrentView }) {
                                 className="px-6 py-3 bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/40 rounded-xl font-bold transition-all text-sm flex items-center gap-2"
                             >
                                 <ArrowRight size={18} weight="bold" /> Kickoff Start
+                            </button>
+                        )}
+                        {(tournament.status === 'ongoing') && (
+                            <button 
+                                onClick={async () => {
+                                    if(confirm('Are you sure you want to announce the winner? This will end the tournament and notify all players.')) {
+                                        try {
+                                            setUpdating(true);
+                                            await apiService.tournaments.complete(tournamentId);
+                                            alert('Tournament Completed! Winner Announced.');
+                                            fetchTournamentDetails();
+                                        } catch(e) { alert(e.message); } finally { setUpdating(false); }
+                                    }
+                                }}
+                                disabled={updating}
+                                className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 shadow-lg shadow-orange-900/40 rounded-xl font-bold transition-all text-sm flex items-center gap-2"
+                            >
+                                <Trophy size={18} weight="bold" /> Announce Results
                             </button>
                         )}
                     </div>

@@ -180,9 +180,9 @@ const MatchView = ({ matchId, setCurrentView }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className={`grid grid-cols-1 ${isPlayer ? 'lg:grid-cols-3' : 'lg:grid-cols-3'} gap-8`}>
                 {/* Left Column: Match Details & Game Area */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className={`space-y-6 ${isPlayer ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                     
                     {/* VS Banner */}
                     <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 p-8 overflow-hidden group">
@@ -232,17 +232,31 @@ const MatchView = ({ matchId, setCurrentView }) => {
                         <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-indigo-500 rounded-bl-lg"></div>
                         <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-indigo-500 rounded-br-lg"></div>
 
-                        {/* Start Match Button Overlay */}
+                        {/* Start Match / Ready Button Overlay */}
                         {displayMatch.status === 'ready' && isPlayer && (
                             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
                                 <div className="text-center">
-                                    <h3 className="text-2xl font-bold text-white mb-4">You are ready?</h3>
-                                    <button
-                                        onClick={handleStartMatch}
-                                        className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-black text-xl rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all transform hover:scale-105 border border-green-400/50"
-                                    >
-                                        START MATCH
-                                    </button>
+                                    <h3 className="text-2xl font-bold text-white mb-4">
+                                        {displayMatch.playersReady?.includes(currentUser?._id) 
+                                            ? 'Waiting for Opponent...' 
+                                            : 'Are you Ready?'}
+                                    </h3>
+                                    
+                                    {displayMatch.playersReady?.includes(currentUser?._id) ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="text-indigo-400 font-bold uppercase tracking-wider text-sm mt-2">
+                                                {displayMatch.playersReady?.length || 1} / {displayMatch.players?.length || 2} Ready
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={handleStartMatch}
+                                            className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-black text-xl rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all transform hover:scale-105 border border-green-400/50"
+                                        >
+                                            READY UP
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -259,7 +273,7 @@ const MatchView = ({ matchId, setCurrentView }) => {
                 </div>
 
                 {/* Right Column: Chat & Sidebar Ads */}
-                <div className="space-y-6">
+                <div className={`space-y-6 ${!isPlayer ? 'grid grid-cols-1 md:grid-cols-2 gap-6 space-y-0' : ''}`}>
                     
                      {/* Connection Status Indicator */}
                      {!isConnected && (
@@ -274,26 +288,29 @@ const MatchView = ({ matchId, setCurrentView }) => {
                         </div>
                     )}
 
-                    {/* Chat Window */}
-                    <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 overflow-hidden shadow-xl h-[600px] flex flex-col">
-                        <div className="p-4 border-b border-slate-700 bg-slate-900/50 flex items-center justify-between">
-                            <h3 className="font-bold text-white flex items-center">
-                                <ChatCircleText className="w-5 h-5 mr-2 text-indigo-400" weight="duotone" />
-                                Live Chat
-                            </h3>
-                            <div className="flex items-center text-xs text-green-400">
-                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                                Online
+                    {/* Chat Window - Only visible to players */}
+                    {isPlayer && (
+                        <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700 overflow-hidden shadow-xl h-[600px] flex flex-col">
+                            <div className="p-4 border-b border-slate-700 bg-slate-900/50 flex items-center justify-between">
+                                <h3 className="font-bold text-white flex items-center">
+                                    <ChatCircleText className="w-5 h-5 mr-2 text-indigo-400" weight="duotone" />
+                                    Live Chat
+                                </h3>
+                                <div className="flex items-center text-xs text-green-400">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                    Online
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-hidden bg-slate-900/30">
+                                <MatchChat 
+                                    matchId={matchId} 
+                                    sendMessage={sendChatMessage}
+                                    currentUser={currentUser}
+                                    isSpectator={!isPlayer}
+                                />
                             </div>
                         </div>
-                        <div className="flex-1 overflow-hidden bg-slate-900/30">
-                            <MatchChat 
-                                matchId={matchId} 
-                                sendMessage={sendChatMessage}
-                                currentUser={currentUser}
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     {/* Sidebar Ad (Square) */}
                     <div className="bg-slate-800/30 rounded-2xl border border-slate-700 p-4 flex justify-center">

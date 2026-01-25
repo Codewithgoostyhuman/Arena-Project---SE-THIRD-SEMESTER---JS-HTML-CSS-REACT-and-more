@@ -70,6 +70,11 @@ class AdvertiserService {
     return await AdvertiserDomain.updateSponsorshipRequest(id, requestIndex, status);
   }
 
+  // Update sponsorship request by tournament ID (for cross-service calls)
+  async updateSponsorshipRequestByTournament(advertiserId, tournamentId, status) {
+    return await AdvertiserDomain.updateSponsorshipRequestByTournament(advertiserId, tournamentId, status);
+  }
+
   // Add sponsored tournament
   async addSponsoredTournament(id, tournamentId, sponsorshipAmount, sponsorshipType = "general") {
     const advertiser = await AdvertiserDomain.getById(id);

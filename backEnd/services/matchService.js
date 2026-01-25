@@ -31,7 +31,7 @@ class MatchGameService {
     }
     
     // Initialize first game
-    const gameState = this._initializeGameState(match.game.type, match.players);
+    const gameState = this._initializeGameState(match.game.type, match.players, 1);
     
     // Set currentTurn based on game type
     // For simultaneous games (RPS, NumberGuessDuel), currentPlayer is null
@@ -100,7 +100,7 @@ class MatchGameService {
     // If game state doesn't exist, initialize it
     if (!match.currentGameState) {
       console.log('⚠️ No game state found - initializing now');
-      const gameState = this._initializeGameState(match.game.type, match.players);
+      const gameState = this._initializeGameState(match.game.type, match.players, 1);
       match.currentGameState = gameState;
       match.currentTurn = gameState.currentPlayer;
       
@@ -217,16 +217,16 @@ class MatchGameService {
   /**
    * Initialize game state based on game type
    */
-  _initializeGameState(gameType, players) {
+  _initializeGameState(gameType, players, roundNumber = 1) {
     switch (gameType) {
       case 'TicTacToe':
-        return TicTacToeLogic.initializeGame(players);
+        return TicTacToeLogic.initializeGame(players, roundNumber);
       
       case 'RockPaperScissors':
-        return RockPaperScissorsLogic.initializeGame(players);
+        return RockPaperScissorsLogic.initializeGame(players, roundNumber);
       
       case 'NumberGuessDuel':
-        return NumberGuessDuelLogic.initializeGame(players);
+        return NumberGuessDuelLogic.initializeGame(players, roundNumber);
       
       default:
         throw new Error(`Unknown game type: ${gameType}`);
@@ -258,31 +258,48 @@ class MatchGameService {
   async _handleGameEnd(match, currentGame, winnerId) {
     currentGame.winner = winnerId;
     currentGame.completedAt = new Date();
-    
+
     // Update scores
-    const winnerIndex = match.players.findIndex(p => p._id.toString() === winnerId.toString());
-    
-    if (winnerIndex === 0) {
-      match.score.player1++;
-    } else {
-      match.score.player2++;
+    let winnerIndex = -1;
+    if (winnerId) {
+      winnerIndex = match.players.findIndex(p => p._id.toString() === winnerId.toString());
+      
+      if (winnerIndex === 0) {
+        match.score.player1++;
+      } else {
+        match.score.player2++;
+      }
     }
     
-    // Check if match is over (best of X)
+    // Check if match is over (best of X OR if we've played max games)
     const gamesNeededToWin = Math.ceil(match.bestOf / 2);
+    const maxGamesReached = match.games.length >= match.bestOf;
     
-    if (match.score.player1 >= gamesNeededToWin || match.score.player2 >= gamesNeededToWin) {
-      // Match is over
-      await this._handleMatchEnd(match, winnerId);
+    if (match.score.player1 >= gamesNeededToWin || match.score.player2 >= gamesNeededToWin || maxGamesReached) {
+      // Determines match winner based on score
+      let matchWinner = null;
+      let isMatchDraw = false;
+
+      if (match.score.player1 > match.score.player2) {
+        matchWinner = match.players[0]._id;
+      } else if (match.score.player2 > match.score.player1) {
+        matchWinner = match.players[1]._id;
+      } else {
+        // Scores are equal -> Match Draw
+        isMatchDraw = true;
+      }
+
+      await this._handleMatchEnd(match, matchWinner, isMatchDraw);
     } else {
       // Start next game
-      const nextGameState = this._initializeGameState(match.game.type, match.players);
+      const nextGameNumber = match.games.length + 1;
+      const nextGameState = this._initializeGameState(match.game.type, match.players, nextGameNumber);
       match.currentGameState = nextGameState;
       // ✅ FIX: nextGameState.currentPlayer is already a player ID
       match.currentTurn = nextGameState.currentPlayer;
       
       match.games.push({
-        gameNumber: match.games.length + 1,
+        gameNumber: nextGameNumber,
         gameState: nextGameState,
         moves: []
       });
@@ -292,8 +309,8 @@ class MatchGameService {
   /**
    * Handle when entire match ends
    */
-  async _handleMatchEnd(match, winnerId) {
-    return this.resolveMatch(match._id, winnerId, false);
+  async _handleMatchEnd(match, winnerId, isDraw = false) {
+    return this.resolveMatch(match._id, winnerId, isDraw);
   }
 
   /**
@@ -378,7 +395,7 @@ class MatchGameService {
       }
 
       try {
-        const gameState = this._initializeGameState(match.game.type, match.players);
+        const gameState = this._initializeGameState(match.game.type, match.players, 1);
         
         // ✅ FIX: gameState.currentPlayer is already a player ID, not an index
         const currentTurnPlayerId = gameState.currentPlayer;

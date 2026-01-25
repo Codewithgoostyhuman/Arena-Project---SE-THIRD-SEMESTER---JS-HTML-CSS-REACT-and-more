@@ -157,6 +157,27 @@ class TournamentBracketService {
       currentRoundMatches = nextRoundMatches;
     }
     
+    // Advancing Byes:
+    // We must manually push the winners of bye matches (finished R1 matches) to their next match
+    // because advanceWinner is not called during generation.
+    const byeMatches = allMatches.filter(m => m.status === 'finished' && m.winner && m.nextMatchId);
+    
+    console.log(`Processing ${byeMatches.length} bye advancements...`);
+    
+    for (const byeMatch of byeMatches) {
+        await Match.findByIdAndUpdate(byeMatch.nextMatchId, {
+            $addToSet: { players: byeMatch.winner }
+        });
+        console.log(`  Advanced bye winner ${byeMatch.winner} from Match ${byeMatch.matchNumber} to next match`);
+    }
+
+    // New: Check if any Round 2 matches became unlocked immediately?
+    // If we have a very small bracket (e.g. 3 players), R1 might be done instantly if the only match was a bye (wait, 3 players = 1 match + 1 bye).
+    // The played match is P1 vs P2. Bye is P3.
+    // P3 is advanced to R2 immediately.
+    // R2 waits for P1/P2 winner.
+    // This is correct behavior.
+    
     // Update tournament with match references
     await Tournament.findByIdAndUpdate(tournamentId, {
       matches: allMatches.map(m => ({
@@ -342,17 +363,42 @@ class TournamentBracketService {
     }
     
     // Add winner to next match
+    // Use findByIdAndUpdate to ensure atomicity
     const nextMatch = await Match.findByIdAndUpdate(
       match.nextMatchId,
       { $addToSet: { players: winnerId } },
       { new: true }
     );
     
-    // Check if next match is ready to start
-    if (nextMatch.players.length === 2) {
-      await Match.findByIdAndUpdate(nextMatch._id, {
-        status: 'ready'
-      });
+    // SEQUENTIAL ROUND ENFORCEMENT
+    // 1. Check if the current round is completely finished
+    const pendingMatchesInRound = await Match.countDocuments({
+      tournament: match.tournament,
+      round: match.round,
+      status: { $ne: 'finished' }
+    });
+    
+    console.log(`Round ${match.round} status: ${pendingMatchesInRound} matches remaining.`);
+    
+    if (pendingMatchesInRound === 0) {
+      console.log(`✅ Round ${match.round} COMPLETE! Unlocking Round ${match.round + 1} matches...`);
+      
+      // 2. Unlock ALL matches in the next round that have both players
+      // We explicitly look for matches in the next round that are 'pending' and have 2 players
+      const updateResult = await Match.updateMany(
+         { 
+            tournament: match.tournament,
+            round: match.round + 1,
+            status: 'pending',
+            $expr: { $eq: [{ $size: "$players" }, 2] }
+         },
+         { $set: { status: 'ready' } }
+      );
+      
+      console.log(`🔓 Unlocked ${updateResult.modifiedCount} matches in Round ${match.round + 1}`);
+      
+    } else {
+      console.log(`🔒 Round ${match.round} not complete yet. Next match remains pending.`);
     }
     
     return nextMatch;
@@ -365,7 +411,7 @@ class TournamentBracketService {
     const matches = await Match.find({ tournament: tournamentId })
       .populate('players', 'name')
       .populate('winner', 'name')
-      .populate('game', 'name type')  // ✅ Also populate game in bracket view
+      .populate('game', 'name type')  
       .sort({ round: 1, matchNumber: 1 });
     
     const bracket = {};

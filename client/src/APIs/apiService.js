@@ -1,4 +1,5 @@
-export const API_BASE = 'http://localhost:5000/api';
+export const SERVER_URL = 'http://localhost:5000';
+export const API_BASE = `${SERVER_URL}/api`;
 
 export const apiService = {
     async request(endpoint, options = {}) {

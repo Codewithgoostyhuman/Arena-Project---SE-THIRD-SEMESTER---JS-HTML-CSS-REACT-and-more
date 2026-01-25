@@ -86,11 +86,11 @@ export default function PlayerLeaguesView() {
     };
 
     const hasApplied = (leagueId) => {
-        return myApplications.some(app => app.league._id === leagueId);
+        return myApplications.some(app => app.league && app.league._id === leagueId);
     };
 
     const getApplication = (leagueId) => {
-        return myApplications.find(app => app.league._id === leagueId);
+        return myApplications.find(app => app.league && app.league._id === leagueId);
     };
 
     if (loading) {
@@ -283,12 +283,14 @@ function ApplicationCard({ application, onCancel, loading }) {
         rejected: <XCircle className="h-5 w-5 text-red-400" weight="fill" />
     };
 
+    if (!application.league) return null; // Skip invalid applications
+
     return (
         <div className="bg-slate-800/50 backdrop-blur-md border border-yellow-500/30 rounded-xl p-5 relative overflow-hidden">
              <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-bl-full pointer-events-none"></div>
 
             <div className="flex items-center justify-between mb-4 relative z-10">
-                <h3 className="font-bold text-white text-lg">{application.league.name}</h3>
+                <h3 className="font-bold text-white text-lg">{application.league?.name || 'Unknown League'}</h3>
                 {statusIcons[application.status]}
             </div>
             
@@ -298,7 +300,7 @@ function ApplicationCard({ application, onCancel, loading }) {
             
             {application.status === 'pending' && (
                 <button
-                    onClick={() => onCancel(application.league._id, application._id)}
+                    onClick={() => onCancel(application.league?._id, application._id)}
                     disabled={loading}
                     className="w-full px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 text-xs font-bold uppercase tracking-wider rounded-lg transition disabled:opacity-50"
                 >

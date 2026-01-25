@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Auth/AuthContext';
-import { GameController, Clock, ShieldCheck, UsersThree, TrendUp, Trophy, CalendarBlank, ChartBar, Envelope, ClipboardText } from "@phosphor-icons/react";
+import { GameController, Clock, ShieldCheck, UsersThree, TrendUp, Trophy, CalendarBlank, ChartBar, Envelope, ClipboardText, Star } from "@phosphor-icons/react";
 import MatchCard from '../reuseableComponents/MatchCard';
 import { apiService } from '../../APIs/apiService';
 
@@ -308,8 +308,13 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
                         <p className="text-slate-400 mt-2 text-lg">Welcome back, {currentUser.name}</p>
                     </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <StatsCard
+                        title="Total Points"
+                        value={playerStats?.points || 0}
+                        icon={<Star className="h-8 w-8 text-yellow-400" weight="duotone" />}
+                        loading={playerStatsLoading}
+                    />
                     <StatsCard
                         title="Matches Played"
                         value={playerStats?.finishedMatches || 0}
@@ -563,7 +568,7 @@ export default function DashboardView({ setCurrentView, setSelectedMatchId }) {
             const profileId = meData?.advertiserProfile?._id || meData?._id;
             if (profileId) {
                 setMyAdvertiserId(profileId);
-                setSponsorshipRequests(meData.advertiserProfile?.sponsorshipRequests || meData.sponsorshipRequests || []);
+                setSponsorshipRequests(dashboardData.advertiser?.sponsorshipRequests || []);
             } else if (currentUser?.role === 'advertiser' && currentUser?.id) {
                 // Fallback to current user ID if profile ID isn't found (they might be the same in some contexts)
                 setMyAdvertiserId(currentUser.id);

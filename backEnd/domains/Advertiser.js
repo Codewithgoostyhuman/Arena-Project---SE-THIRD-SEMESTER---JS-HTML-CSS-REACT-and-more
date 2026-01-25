@@ -178,6 +178,45 @@ export default class AdvertiserDomain {
     }
 
     const request = advertiser.sponsorshipRequests[requestIndex];
+    
+    // LOGIC CHANGE: If accepting, check funds and process payment
+    if (status === 'accepted' && request.status !== 'accepted') {
+       // 1. Calculate Balance
+       const totalCost = advertiser.ads.reduce(
+        (sum, ad) =>
+          sum +
+          (ad.type === "exclusive"
+            ? ad.fee
+            : ad.impressions * ad.perImpressionCost + ad.clicks * ad.perClickCost),
+        0
+      );
+      const currentBalance = (advertiser.payments || 0) + (advertiser.initialBalance || 0) - totalCost;
+      
+      // 2. Check Funds
+      if (currentBalance < request.proposedAmount) {
+          throw new Error(`Insufficient funds. Balance: ${currentBalance}, Required: ${request.proposedAmount}`);
+      }
+      
+      // 3. Deduct Funds by creating an Ad entry
+      // This ad entry represents the "Exclusive Sponsorship" or the block of sponsorship bought
+      advertiser.ads.push({
+          title: `Sponsorship: ${request.type} for Tournament ${request.tournament}`,
+          content: 'Sponsorship Fee',
+          type: 'exclusive', // 'exclusive' type is used for fixed-fee deductions in calculateBalance
+          fee: request.proposedAmount,
+          tournament: request.tournament,
+          createdAt: new Date()
+      });
+      
+      // 4. Add to Sponsored Tournaments
+      advertiser.sponsoredTournaments.push({
+          tournament: request.tournament,
+          type: request.type,
+          amountPaid: request.proposedAmount,
+          startDate: new Date()
+      });
+    }
+
     request.status = status;
     request.respondedAt = new Date();
 
@@ -235,6 +274,21 @@ export default class AdvertiserDomain {
 
     await advertiser.save();
     return advertiser.toJSON();
+  }
+
+  static async updateSponsorshipRequestByTournament(advertiserId, tournamentId, status) {
+    const advertiser = await Advertiser.findById(advertiserId);
+    if (!advertiser) throw new Error("Advertiser not found");
+
+    const requestIndex = advertiser.sponsorshipRequests.findIndex(
+      r => r.tournament && r.tournament.toString() === tournamentId.toString() && r.status === 'pending'
+    );
+
+    if (requestIndex === -1) {
+      throw new Error("Pending sponsorship request not found for this tournament");
+    }
+
+    return this.updateSponsorshipRequest(advertiserId, requestIndex, status);
   }
 
   /* ===============================

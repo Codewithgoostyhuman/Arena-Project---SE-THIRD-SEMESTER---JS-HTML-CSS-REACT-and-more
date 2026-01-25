@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../APIs/apiService';
+import { apiService, SERVER_URL } from '../../APIs/apiService';
 
 const MatchAdDisplay = ({ matchId }) => {
   const [ads, setAds] = useState([]);
@@ -37,6 +37,7 @@ const MatchAdDisplay = ({ matchId }) => {
   if (loading || ads.length === 0) return null;
 
   const currentAd = ads[currentAdIndex];
+  console.log("Debug MatchAdDisplay:", JSON.stringify({ currentAd, SERVER_URL }, null, 2));
 
   return (
     <div className="bg-gray-800 rounded-lg p-4 mb-4 border border-gray-700 shadow-lg relative overflow-hidden group">
@@ -47,7 +48,7 @@ const MatchAdDisplay = ({ matchId }) => {
         <div className="flex flex-col items-center justify-center text-center">
             {currentAd.imageUrl || (currentAd.content && currentAd.content.startsWith('/uploads')) ? (
                <img 
-                 src={`http://localhost:5000${currentAd.imageUrl || currentAd.content}`} 
+                 src={`${currentAd.imageUrl?.startsWith('http') ? currentAd.imageUrl : SERVER_URL + (currentAd.imageUrl || currentAd.content)}`} 
                  alt={currentAd.title} 
                  className="max-h-32 object-contain mb-2 rounded"
                />
