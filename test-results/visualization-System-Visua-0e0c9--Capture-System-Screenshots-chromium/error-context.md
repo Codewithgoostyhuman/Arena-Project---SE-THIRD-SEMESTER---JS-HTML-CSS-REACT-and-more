@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7] [cursor=pointer]:
+        - img [ref=e10]
+        - generic [ref=e13]: ARENA
+      - generic [ref=e14]:
+        - button "Home" [ref=e15]
+        - button "Live" [ref=e16]
+        - button "Login" [ref=e17]
+        - button "Register" [ref=e18]
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Next Gen Esports Platform
+          - heading "UNLEASH YOUR POTENTIAL" [level=1] [ref=e26]:
+            - text: UNLEASH
+            - generic [ref=e27]: YOUR POTENTIAL
+          - paragraph [ref=e28]: Join the elite. Compete in automated tournaments, climb the global leaderboards, and carve your legacy in the digital arena.
+          - generic [ref=e29]:
+            - button "START COMPETING" [ref=e30]:
+              - generic [ref=e31]:
+                - text: START COMPETING
+                - img [ref=e32]
+            - button "WATCH LIVE" [ref=e34]:
+              - generic [ref=e35]: WATCH LIVE
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e41]: 10K+ PLAYERS
+            - generic [ref=e42]:
+              - img [ref=e43]
+              - generic [ref=e46]: $50K+ PRIZES
+            - generic [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e51]: GLOBAL SERVERS
+        - generic [ref=e52]:
+          - img "Esports Trophy" [ref=e60]
+          - generic [ref=e63]:
+            - img [ref=e65]
+            - generic [ref=e68]:
+              - generic [ref=e69]: Total Prizepool
+              - generic [ref=e70]: $50,000+
+          - generic [ref=e72]:
+            - img [ref=e74]
+            - generic [ref=e77]:
+              - generic [ref=e78]: Live Tournaments
+              - generic [ref=e79]: 12 Active
+      - generic [ref=e80]:
+        - heading "Why Choose ARENA" [level=2] [ref=e82]
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - img [ref=e86]
+            - heading "Elite Automated Tournaments" [level=3] [ref=e89]
+            - paragraph [ref=e90]: Experience the future of competitive gaming with our fully automated tournament system. From bracket generation to match verification, focus on playing and let us handle the logistics.
+          - generic [ref=e91]:
+            - img [ref=e93]
+            - heading "Anti-Cheat & Security" [level=3] [ref=e96]
+            - paragraph [ref=e97]: Play with confidence. Our advanced security measures and fair-play policies ensure a level playing field for everyone.
+          - generic [ref=e98]:
+            - img [ref=e99]
+            - heading "Community Leagues" [level=3] [ref=e102]
+            - paragraph [ref=e103]: Create and manage your own leagues with custom rules.
+          - generic [ref=e104]:
+            - img [ref=e105]
+            - heading "Ranked Progression" [level=3] [ref=e108]
+            - paragraph [ref=e109]: Climb the ladder and earn exclusive digital rewards.
+```

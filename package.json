@@ -8,7 +8,8 @@
     "install-client": "cd client && npm install",
     "build-client": "cd client && npm run build",
     "build": "npm install && npm run install-client && npm run build-client",
-    "start": "node backEnd/server.js"
+    "start": "node backEnd/server.js",
+    "test:e2e": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -40,5 +41,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "playwright": "^1.58.0"
   }
 }

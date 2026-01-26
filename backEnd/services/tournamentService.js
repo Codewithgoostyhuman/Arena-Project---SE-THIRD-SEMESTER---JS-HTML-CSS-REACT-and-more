@@ -277,7 +277,7 @@ class TournamentService {
     return await Tournament.updateApplicationStatus(tournamentId, applicationId, status);
   }
 
-  async recordMatchResult(tournamentId, matchId, winnerId, isDraw) {
+  async recordMatchResult(tournamentId, matchId, winnerId, isDraw, io = null) {
     // Delegate to match service to ensure stats are updated correctly
     const match = await matchGameService.resolveMatch(matchId, winnerId, isDraw);
 
@@ -289,7 +289,7 @@ class TournamentService {
       if (allFinished) {
         console.log(`🏆 Auto-completing tournament ${tournamentId} as all matches are finished.`);
         // Run asynchronously to not block response
-        this.completeTournament(tournamentId).catch(err => 
+        this.completeTournament(tournamentId, io).catch(err => 
           console.error("Failed to auto-complete tournament:", err)
         );
       }
@@ -370,7 +370,7 @@ class TournamentService {
   return { tournament, matches: createdMatches };
 }
 
-  async completeTournament(tournamentId) {
+  async completeTournament(tournamentId, io = null) {
     const tournament = await TournamentModel.findById(tournamentId)
       .populate("matches")
       .populate("players")
@@ -416,17 +416,12 @@ class TournamentService {
     // NOTIFY ALL PLAYERS
     const winnerName = tournament.players.find(p => p._id.toString() === winnerId)?.name || 'Unknown';
     
-    // Create notifications for all participants
-    const notifications = tournament.players.map(player => ({
-      user: player._id,
-      type: 'tournament_results',
-      title: 'Tournament Ended',
-      message: `The tournament ${tournament.name} has ended! The winner is ${winnerName}!`,
-      relatedTournament: tournament._id,
-      relatedLeague: tournament.league._id
-    }));
-
-    await notificationService.createMany(notifications);
+    await notificationService.notifyTournamentResults(
+      tournament._id, 
+      tournament.players, 
+      winnerName,
+      io
+    );
 
     return tournament;
   }

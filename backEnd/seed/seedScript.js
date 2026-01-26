@@ -1,6 +1,10 @@
 // backend/scripts/seedDatabase.js
 // Fixed version - handles password hashing correctly
 // Usage: node scripts/seedDatabase.js
+import Tournament from "../schemas/TournamentSchema.js";
+import Match from "../schemas/MatchSchema.js";
+import League from "../schemas/LeagueSchema.js";
+import Notification from "../schemas/notificationSchema.js";
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -16,11 +20,22 @@ const seedDatabase = async () => {
         await mongoose.connect(process.env.MONGO_URI );
         console.log('✅ Connected to MongoDB');
 
+
+// ... imports
+
         // Clear existing data
         console.log('🗑️  Clearing existing data...');
-        await User.deleteMany({});
-        await Game.deleteMany({});
-        await Advertiser.deleteMany({});
+        
+        await Promise.all([
+            User.deleteMany({}),
+            Game.deleteMany({}),
+            Advertiser.deleteMany({}),
+            Tournament.deleteMany({}),
+            Match.deleteMany({}),
+            League.deleteMany({}),
+            Notification.deleteMany({})
+        ]);
+        
         console.log('✅ Data cleared');
 
         // ======================

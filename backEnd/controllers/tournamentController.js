@@ -69,8 +69,9 @@ export const recordMatchResult = async (req, res) => {
     const match = await tournamentService.recordMatchResult(
       req.params.tournamentId,
       req.params.matchId,
-      winnerId,
-      isDraw
+      workerId,
+      isDraw,
+      req.io
     );
     res.json(match);
   } catch (err) {

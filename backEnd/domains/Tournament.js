@@ -23,7 +23,10 @@ export default class Tournament {
       .populate('players', 'name email stats')
       .populate('winners', 'name email')
       .populate('applications', 'user status createdAt')
-      .populate('matches')
+      .populate({
+        path: 'matches',
+        populate: { path: 'players', select: 'name email' }
+      })
       .populate('exclusiveSponsor', 'companyName')
       .populate('sponsorshipRequests.advertiser', 'companyName');
     if (!tournament) throw new Error("Tournament not found");

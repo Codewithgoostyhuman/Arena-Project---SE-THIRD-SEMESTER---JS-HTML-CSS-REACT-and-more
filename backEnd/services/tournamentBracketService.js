@@ -346,7 +346,10 @@ class TournamentBracketService {
   /**
    * Advance winner to next match
    */
-  async advanceWinner(matchId, winnerId) {
+  /**
+   * Advance winner to next match
+   */
+  async advanceWinner(matchId, winnerId, io = null) {
     const match = await Match.findById(matchId);
     
     if (!match) {
@@ -355,9 +358,10 @@ class TournamentBracketService {
     
     if (!match.nextMatchId) {
       // This was the finals
+      // Note: We don't set status to 'finished' here because completeTournament handles it
+      // based on match completion. But for safety we can push winner.
       await Tournament.findByIdAndUpdate(match.tournament, {
-        $push: { winners: winnerId },
-        status: 'finished'
+        $addToSet: { winners: winnerId }
       });
       return null;
     }
@@ -370,35 +374,29 @@ class TournamentBracketService {
       { new: true }
     );
     
-    // SEQUENTIAL ROUND ENFORCEMENT
-    // 1. Check if the current round is completely finished
-    const pendingMatchesInRound = await Match.countDocuments({
-      tournament: match.tournament,
-      round: match.round,
-      status: { $ne: 'finished' }
-    });
-    
-    console.log(`Round ${match.round} status: ${pendingMatchesInRound} matches remaining.`);
-    
-    if (pendingMatchesInRound === 0) {
-      console.log(`✅ Round ${match.round} COMPLETE! Unlocking Round ${match.round + 1} matches...`);
-      
-      // 2. Unlock ALL matches in the next round that have both players
-      // We explicitly look for matches in the next round that are 'pending' and have 2 players
-      const updateResult = await Match.updateMany(
-         { 
-            tournament: match.tournament,
-            round: match.round + 1,
-            status: 'pending',
-            $expr: { $eq: [{ $size: "$players" }, 2] }
-         },
-         { $set: { status: 'ready' } }
-      );
-      
-      console.log(`🔓 Unlocked ${updateResult.modifiedCount} matches in Round ${match.round + 1}`);
-      
+    // Check if next match is ready (has 2 players)
+    if (nextMatch.players.length === 2) {
+        console.log(`✅ Match ${nextMatch.matchNumber} (Round ${nextMatch.round}) is ready!`);
+        
+        nextMatch.status = 'ready';
+        await nextMatch.save();
+        
+        // Notify players if io is available
+        if (io) {
+            io.notifyMatch(nextMatch._id, 'match-ready', {
+                matchId: nextMatch._id,
+                players: nextMatch.players
+            });
+            
+             // Also notify tournament room
+            io.notifyTournament(nextMatch.tournament, 'match-ready', {
+                matchId: nextMatch._id,
+                round: nextMatch.round,
+                matchNumber: nextMatch.matchNumber
+            });
+        }
     } else {
-      console.log(`🔒 Round ${match.round} not complete yet. Next match remains pending.`);
+        console.log(`⏳ Match ${nextMatch.matchNumber} waiting for opponent...`);
     }
     
     return nextMatch;

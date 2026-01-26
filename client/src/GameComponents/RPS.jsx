@@ -262,10 +262,16 @@ const RPS = ({ matchId, onMatchUpdate }) => {
 
       {/* Game Status */}
       <div className="mb-6 text-center">
-        {match.winner ? (
-          <div className="text-2xl font-bold text-green-400">
-            {match.players?.[gameState.winner]?.name || 'Player'} Wins! 🎉
-          </div>
+        {match.status === 'finished' ? (
+           match.isDraw ? (
+              <div className="text-2xl font-bold text-yellow-400">
+                  Match Ended in a Draw! 🤝
+              </div>
+           ) : (
+              <div className="text-2xl font-bold text-green-400">
+                  {match.players?.find(p => p._id === match.winner || p._id === match.winner?._id)?.name || 'Player'} Wins! 🎉
+              </div>
+           )
         ) : (
           <div className="space-y-2">
             <div className="text-xl font-semibold">
@@ -312,7 +318,7 @@ const RPS = ({ matchId, onMatchUpdate }) => {
       </div>
 
       {/* Move Selection */}
-      {!gameState.winner && (
+      {!match.winner && match.status !== 'finished' && !match.isDraw && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4 text-center">
             {hasPlayerMoved ? 'Your Move (Hidden)' : 'Select Your Move'}

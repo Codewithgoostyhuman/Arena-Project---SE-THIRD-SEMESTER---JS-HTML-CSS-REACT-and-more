@@ -8,13 +8,18 @@ class NotificationService {
   /**
    * Create in-app notification
    */
-  async createNotification(userId, notificationData) {
+  async createNotification(userId, notificationData, io = null) {
     const notification = new Notification({
       user: userId,
       ...notificationData
     });
 
     await notification.save();
+
+    if (io) {
+      io.to(`user-${userId}`).emit('notification', notification);
+    }
+
     return notification;
   }
 
@@ -158,7 +163,10 @@ class NotificationService {
   /**
    * Notify about tournament results
    */
-  async notifyTournamentResults(tournamentId, players, winnerName) {
+  /**
+   * Notify about tournament results
+   */
+  async notifyTournamentResults(tournamentId, players, winnerName, io = null) {
     try {
       const notificationPromises = players.map(async (player, index) => {
         const user = await User.findById(player._id);
@@ -171,7 +179,7 @@ class NotificationService {
           message: `Tournament has ended. Winner: ${winnerName}`,
           link: `/tournaments/${tournamentId}`,
           relatedTournament: tournamentId
-        });
+        }, io);
 
         // Send email
         if (user.email) {

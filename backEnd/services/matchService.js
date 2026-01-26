@@ -30,8 +30,11 @@ class MatchGameService {
       throw new Error('Match already started or finished');
     }
     
-    // Initialize first game
-    const gameState = this._initializeGameState(match.game.type, match.players, 1);
+    // Initialize first game if not exists
+    let gameState = match.currentGameState;
+    if (!gameState) {
+        gameState = this._initializeGameState(match.game.type, match.players, 1);
+    }
     
     // Set currentTurn based on game type
     // For simultaneous games (RPS, NumberGuessDuel), currentPlayer is null
@@ -309,15 +312,15 @@ class MatchGameService {
   /**
    * Handle when entire match ends
    */
-  async _handleMatchEnd(match, winnerId, isDraw = false) {
-    return this.resolveMatch(match._id, winnerId, isDraw);
+  async _handleMatchEnd(match, winnerId, isDraw = false, io = null) {
+    return this.resolveMatch(match._id, winnerId, isDraw, io);
   }
 
   /**
    * Resolve a match manually or automatically
    * Updates status, calculates stats, and advances bracket
    */
-  async resolveMatch(matchId, winnerId, isDraw = false) {
+  async resolveMatch(matchId, winnerId, isDraw = false, io = null) {
     const match = await Match.findById(matchId)
       .populate('players')
       .populate({
@@ -366,7 +369,12 @@ class MatchGameService {
 
     // Advance Bracket if Tournament
     if (match.tournament && match.winner) {
-      await tournamentBracketService.advanceWinner(match._id, match.winner);
+      const nextMatch = await tournamentBracketService.advanceWinner(match._id, match.winner, io);
+      
+      // If no next match (finals completed), check and complete tournament
+      if (nextMatch === null) {
+        await this._checkAndCompleteTournament(match.tournament, io);
+      }
     }
     
     return match;
@@ -404,7 +412,7 @@ class MatchGameService {
         const updatedMatch = await Match.findOneAndUpdate(
           { 
             _id: matchId,
-            status: 'live',
+            status: { $in: ['live', 'ready'] }, // Auto-init for ready matches too
             $or: [
               { currentGameState: { $exists: false } },
               { currentGameState: null }
@@ -447,7 +455,8 @@ class MatchGameService {
             matchNumber: updatedMatch.matchNumber,
             bestOf: updatedMatch.bestOf,
             winner: updatedMatch.winner,
-            isFinals: updatedMatch.isFinals
+            isFinals: updatedMatch.isFinals,
+            isDraw: updatedMatch.isDraw
           };
         }
         
@@ -471,7 +480,8 @@ class MatchGameService {
             matchNumber: refetchedMatch.matchNumber,
             bestOf: refetchedMatch.bestOf,
             winner: refetchedMatch.winner,
-            isFinals: refetchedMatch.isFinals
+            isFinals: refetchedMatch.isFinals,
+            isDraw: refetchedMatch.isDraw
           };
         }
       } catch (error) {
@@ -492,7 +502,8 @@ class MatchGameService {
       matchNumber: match.matchNumber,
       bestOf: match.bestOf,
       winner: match.winner,
-      isFinals: match.isFinals
+      isFinals: match.isFinals,
+      isDraw: match.isDraw
     };
     
     console.log('Returning match state:', {
@@ -514,6 +525,26 @@ class MatchGameService {
     })
       .populate('players', 'name')
       .sort({ round: 1, matchNumber: 1 });
+  }
+
+  /**
+   * Check if all tournament matches are finished and complete the tournament
+   */
+  async _checkAndCompleteTournament(tournamentId, io = null) {
+    const Tournament = (await import('../schemas/TournamentSchema.js')).default;
+    const tournament = await Tournament.findById(tournamentId).populate('matches');
+    
+    if (!tournament || tournament.status === 'finished') {
+      return; // Already finished or not found
+    }
+    
+    const allFinished = tournament.matches.every(m => m.status === 'finished');
+    
+    if (allFinished) {
+      console.log(`🏆 All matches finished - completing tournament ${tournamentId}`);
+      const tournamentService = (await import('./tournamentService.js')).default;
+      await tournamentService.completeTournament(tournamentId, io);
+    }
   }
 }
 
