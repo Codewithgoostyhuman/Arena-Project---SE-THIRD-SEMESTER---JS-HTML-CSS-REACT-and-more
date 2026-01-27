@@ -248,11 +248,11 @@ function TournamentCard({ tournament, isMember, hasApplied, application, onApply
             <div className="space-y-3 mb-6">
                 <div className="flex items-center text-sm text-slate-300">
                     <Trophy className="h-4 w-4 mr-3 text-yellow-500" weight="duotone" />
-                    <span className="font-bold">{tournament.game?.name || 'Game'}</span>
+                    <span className="font-bold">{tournament.league?.game?.name || 'Game'}</span>
                 </div>
                 <div className="flex items-center text-sm text-slate-300">
                     <UsersThree className="h-4 w-4 mr-3 text-blue-400" weight="duotone" />
-                    <span>{tournament.registeredPlayers?.length || 0} / {tournament.maxParticipants || '∞'} Players</span>
+                    <span>{tournament.players?.length || 0} / {tournament.maxPlayers || '∞'} Players</span>
                 </div>
                 {tournament.startDate && (
                     <div className="flex items-center text-sm text-slate-300">

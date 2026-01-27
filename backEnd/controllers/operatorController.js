@@ -2,8 +2,8 @@
 
 import User from '../schemas/UserSchema.js';
 import Game from '../schemas/GameSchema.js';
-
-// ==================== DASHBOARD STATISTICS ====================
+import Tournament from '../schemas/TournamentSchema.js';
+import League from '../schemas/LeagueSchema.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
@@ -11,15 +11,18 @@ export const getDashboardStats = async (req, res) => {
         const totalUsers = await User.countDocuments();
         const activeUsers = await User.countDocuments({ status: 'active' });
         const totalGames = await Game.countDocuments();
+        const activeLeagues = await League.countDocuments({ status: 'active' });
+        const totalTournaments = await Tournament.countDocuments();
+        const activeTournaments = await Tournament.countDocuments({ status: 'ongoing' });
 
         const stats = {
             pendingUsers,
             totalUsers,
             activeUsers,
             totalGames,
-            activeLeagues: 0,
-            totalTournaments: 0,
-            activeTournaments: 0
+            activeLeagues,
+            totalTournaments,
+            activeTournaments
         };
 
         res.json(stats);

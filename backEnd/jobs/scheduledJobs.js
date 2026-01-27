@@ -63,5 +63,37 @@ export function initializeScheduledJobs() {
     }
   });
 
+  // Run every hour: Complete stuck tournaments (all matches finished but tournament not marked finished)
+  cron.schedule('30 * * * *', async () => {
+    console.log('🔄 Checking for stuck tournaments to complete...');
+    try {
+      const Tournament = (await import('../schemas/TournamentSchema.js')).default;
+      
+      const inProgressTournaments = await Tournament.find({ 
+        status: 'in-progress' 
+      }).populate('matches');
+      
+      let completedCount = 0;
+      
+      for (const tournament of inProgressTournaments) {
+        if (!tournament.matches || tournament.matches.length === 0) continue;
+        
+        const allFinished = tournament.matches.every(m => m.status === 'finished');
+        
+        if (allFinished) {
+          console.log(`🏆 Auto-completing stuck tournament: ${tournament.name}`);
+          await tournamentService.completeTournament(tournament._id);
+          completedCount++;
+        }
+      }
+      
+      if (completedCount > 0) {
+        console.log(`✅ Completed ${completedCount} stuck tournaments`);
+      }
+    } catch (err) {
+      console.error('❌ Error completing stuck tournaments:', err.message);
+    }
+  });
+
   console.log('✅ Scheduled jobs initialized');
 }

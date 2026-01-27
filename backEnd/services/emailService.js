@@ -168,7 +168,9 @@ class EmailService {
           <p>The <strong>${tournament}</strong> tournament has concluded!</p>
           
           <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>🏆 Winner:</strong> ${winner}</p>
+            ${winner === 'Draw' 
+              ? `<p><strong>Result:</strong> Draw (No Winner)</p>` 
+              : `<p><strong>🏆 Winner:</strong> ${winner}</p>`}
             <p><strong>Your Position:</strong> ${position}</p>
             <p><strong>Your Stats:</strong> ${stats.wins}W - ${stats.losses}L - ${stats.draws}D</p>
             <p><strong>Points Earned:</strong> ${stats.points}</p>

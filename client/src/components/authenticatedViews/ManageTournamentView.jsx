@@ -63,7 +63,7 @@ export default function ManageTournamentView({ tournamentId, setCurrentView }) {
     };
 
     const getStatusStep = (status) => {
-        const statuses = ['planning', 'seeking_sponsors', 'open_for_applications', 'upcoming', 'ongoing', 'finished'];
+        const statuses = ['planning', 'seeking_sponsors', 'open_for_applications', 'ongoing', 'finished'];
         return statuses.indexOf(status);
     };
 
@@ -124,7 +124,7 @@ export default function ManageTournamentView({ tournamentId, setCurrentView }) {
                                 <UsersThree size={18} /> Open Registration
                             </button>
                         )}
-                        {(tournament.status === 'open_for_applications' || tournament.status === 'upcoming') && (
+                        {(tournament.status === 'open_for_applications') && (
                             <button 
                                 onClick={async () => {
                                     if(confirm('Kickoff will generate matches. Proceed?')) {
@@ -166,7 +166,7 @@ export default function ManageTournamentView({ tournamentId, setCurrentView }) {
                 {/* Progress Bar */}
                 <div className="mb-12 px-4">
                     <div className="flex justify-between mb-4">
-                        {['Planning', 'Sponsors', 'Registration', 'Upcoming', 'Live', 'Finished'].map((label, i) => (
+                        {['Planning', 'Sponsors', 'Registration', 'Live', 'Finished'].map((label, i) => (
                             <div key={label} className={`flex flex-col items-center gap-2 transition-all duration-500 ${i <= currentStep ? 'opacity-100' : 'opacity-30'}`}>
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
                                     i < currentStep ? 'bg-indigo-600 border-indigo-500' : 

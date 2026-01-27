@@ -268,7 +268,7 @@ export const makeMove = async (req, res) => {
       return res.status(400).json({ message: 'Move is required' });
     }
     
-    const result = await matchGameService.processMove(id, userId, move);
+    const result = await matchGameService.processMove(id, userId, move, req.io);
     
     // ✅ Populate currentTurn before notifying
     await result.match.populate('currentTurn', 'name');

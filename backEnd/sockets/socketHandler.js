@@ -129,7 +129,7 @@ export const initializeSocketIO = (server) => {
         console.log(`🎮 Move received - Match: ${matchId}, Player: ${playerId}`, move);
         
         // Process the move
-        const result = await matchGameService.processMove(matchId, playerId, move);
+        const result = await matchGameService.processMove(matchId, playerId, move, io);
         
         // Broadcast move to everyone in the match
         io.to(`match-${matchId}`).emit('move-made', {

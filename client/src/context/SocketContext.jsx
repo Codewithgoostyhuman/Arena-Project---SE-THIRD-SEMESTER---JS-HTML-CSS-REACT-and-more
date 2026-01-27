@@ -22,6 +22,7 @@ export const SocketProvider = ({ children }) => {
             
             if (currentUser && !socketRef.current.userId) {
                  socketRef.current.emit('authenticate', currentUser._id);
+                 socketRef.current.emit('subscribe-notifications', currentUser._id);
                  socketRef.current.userId = currentUser._id;
             } else if (!currentUser && socketRef.current.userId) {
                 // User logged out, disconnect and reconnect as guest
@@ -54,6 +55,8 @@ export const SocketProvider = ({ children }) => {
             setIsConnected(true);
             if (currentUser) {
                 newSocket.emit('authenticate', currentUser._id);
+                // Also subscribe to personal notifications
+                newSocket.emit('subscribe-notifications', currentUser._id);
                 newSocket.userId = currentUser._id; // Local tracking
             }
         });

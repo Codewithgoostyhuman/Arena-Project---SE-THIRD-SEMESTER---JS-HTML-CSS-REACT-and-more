@@ -42,7 +42,7 @@ export const deleteTournament = async (req, res) => {
 
 export const completeTournament = async (req, res) => {
   try {
-    const tournament = await tournamentService.completeTournament(req.params.tournamentId);
+    const tournament = await tournamentService.completeTournament(req.params.tournamentId, req.io);
     res.json(tournament);
   } catch (err) {
     res.status(400).json({ message: err.message });

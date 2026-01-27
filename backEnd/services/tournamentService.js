@@ -279,7 +279,7 @@ class TournamentService {
 
   async recordMatchResult(tournamentId, matchId, winnerId, isDraw, io = null) {
     // Delegate to match service to ensure stats are updated correctly
-    const match = await matchGameService.resolveMatch(matchId, winnerId, isDraw);
+    const match = await matchGameService.resolveMatch(matchId, winnerId, isDraw, io);
 
     // Check if tournament is ready to complete
     const tournament = await TournamentModel.findById(tournamentId).populate('matches');
@@ -397,12 +397,21 @@ class TournamentService {
       }
     });
 
-    let winnerId = null;
+    let winners = [];
     let maxWins = -1;
+    
+    // Find highest win count
     Object.keys(playerStats).forEach(playerId => {
-      if (playerStats[playerId].wins > maxWins) {
-        maxWins = playerStats[playerId].wins;
-        winnerId = playerId;
+      const wins = playerStats[playerId].wins;
+      if (wins > maxWins) {
+        maxWins = wins;
+      }
+    });
+
+    // Find all players with that win count
+    Object.keys(playerStats).forEach(playerId => {
+      if (playerStats[playerId].wins === maxWins) {
+        winners.push(playerId);
       }
     });
 
@@ -410,11 +419,20 @@ class TournamentService {
     // We only need to set the winner and status.
 
     tournament.status = "finished";
-    tournament.winners = [winnerId];
+    
+    let winnerName;
+    if (winners.length === 1) {
+       tournament.winners = [winners[0]];
+       winnerName = tournament.players.find(p => p._id.toString() === winners[0])?.name || 'Unknown';
+    } else {
+       // It's a draw
+       tournament.winners = [];
+       winnerName = 'Draw';
+    }
+    
     await tournament.save();
 
     // NOTIFY ALL PLAYERS
-    const winnerName = tournament.players.find(p => p._id.toString() === winnerId)?.name || 'Unknown';
     
     await notificationService.notifyTournamentResults(
       tournament._id, 
@@ -432,6 +450,7 @@ class TournamentService {
   path: "league",
   populate: { path: "game" }  // ✅ Now league.game is populated!
 })
+      .populate('applications');
     
     if (!tournament) {
       throw new Error('Tournament not found');
@@ -483,7 +502,7 @@ class TournamentService {
       // Bracket service sets status to 'ongoing', but for kickoff we might want 'upcoming'
       // if playStartDate hasn't arrived. But usually kickoff happens close to play start.
       // Let's respect the 'upcoming' logic for consistency with scheduling.
-      tournament.status = 'upcoming';
+      tournament.status = 'ongoing';
       tournament.matches = createdMatches.map(m => m._id);
       await tournament.save();
       
@@ -520,9 +539,9 @@ class TournamentService {
         })
       );
       
-      // Phase 1: Set status to upcoming
+      // Phase 1: Set status to ongoing/upcoming
       tournament.matches = createdMatches.map(m => m._id);
-      tournament.status = 'upcoming';
+      tournament.status = 'ongoing';
       await tournament.save();
     }
     

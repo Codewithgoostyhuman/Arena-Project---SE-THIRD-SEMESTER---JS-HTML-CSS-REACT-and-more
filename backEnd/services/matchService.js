@@ -68,7 +68,7 @@ class MatchGameService {
   /**
    * Process a player's move
    */
- async processMove(matchId, playerId, move) {
+ async processMove(matchId, playerId, move, io = null) {
     console.log('=== PROCESS MOVE ===');
     console.log('Match ID:', matchId);
     console.log('Player ID:', playerId);
@@ -206,7 +206,21 @@ class MatchGameService {
     
     // Check if game is over
     if (result.gameOver) {
-      await this._handleGameEnd(match, currentGame, result.winner);
+      const matchResolved = await this._handleGameEnd(match, currentGame, result.winner, io);
+      
+      if (matchResolved) {
+        console.log('✅ Match resolved inside processMove - skipping save to avoid overwrite');
+        // Match was resolved and saved inside _handleGameEnd -> resolveMatch
+        // We should return the FRESH match state
+        const freshMatch = await Match.findById(matchId)
+          .populate('players')
+          .populate('game');
+          
+        return {
+          match: freshMatch,
+          moveResult: result
+        };
+      }
     }
     
     await match.save();
@@ -258,7 +272,7 @@ class MatchGameService {
   /**
    * Handle when a single game ends
    */
-  async _handleGameEnd(match, currentGame, winnerId) {
+  async _handleGameEnd(match, currentGame, winnerId, io = null) {
     currentGame.winner = winnerId;
     currentGame.completedAt = new Date();
 
@@ -292,7 +306,8 @@ class MatchGameService {
         isMatchDraw = true;
       }
 
-      await this._handleMatchEnd(match, matchWinner, isMatchDraw);
+      await this._handleMatchEnd(match, matchWinner, isMatchDraw, io);
+      return true; // Match resolved
     } else {
       // Start next game
       const nextGameNumber = match.games.length + 1;
@@ -306,6 +321,7 @@ class MatchGameService {
         gameState: nextGameState,
         moves: []
       });
+      return false; // Match continues
     }
   }
   

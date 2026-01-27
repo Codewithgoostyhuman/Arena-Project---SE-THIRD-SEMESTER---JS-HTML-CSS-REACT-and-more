@@ -180,11 +180,7 @@ class TournamentBracketService {
     
     // Update tournament with match references
     await Tournament.findByIdAndUpdate(tournamentId, {
-      matches: allMatches.map(m => ({
-        players: m.players,
-        winner: m.winner,
-        isDraw: m.isDraw
-      })),
+      matches: allMatches.map(m => m._id),
       status: 'ongoing'
     });
     

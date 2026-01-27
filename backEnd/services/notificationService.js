@@ -173,10 +173,14 @@ class NotificationService {
         if (!user) return;
 
         // Create in-app notification
+        const message = winnerName === 'Draw' 
+          ? 'Tournament ended in a draw. No winner declared.' 
+          : `Tournament has ended. Winner: ${winnerName}`;
+
         await this.createNotification(player._id, {
           type: "tournament_results",
           title: "Tournament Complete",
-          message: `Tournament has ended. Winner: ${winnerName}`,
+          message,
           link: `/tournaments/${tournamentId}`,
           relatedTournament: tournamentId
         }, io);
